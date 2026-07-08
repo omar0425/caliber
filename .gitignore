@@ -46,3 +46,8 @@ next-env.d.ts
 /uploads
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# Never commit SQLite databases or the local data dir
+/prisma/*.db
+/prisma/*.db-journal
+/prisma/data/
