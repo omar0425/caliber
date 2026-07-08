@@ -1,0 +1,141 @@
+// Caliber — watch collection database
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Watch {
+  id              String   @id @default(cuid())
+  // Identity
+  brand           String
+  model           String
+  referenceNumber String?
+  nickname        String?
+  // Specs
+  movement        String? // Automatic / Manual / Quartz
+  caliber         String? // movement caliber, e.g. "Cal. 3235"
+  caseMaterial    String?
+  caseDiameterMm  Float?
+  lugToLugMm      Float?
+  thicknessMm     Float?
+  dialColor       String?
+  bezel           String?
+  crystal         String?
+  braceletType    String?
+  waterResistM    Int?
+  powerReserveH   Int?
+  complications   String? // comma-separated
+  yearProduced    String? // range or single year
+  // Background / research
+  summary         String? // one-paragraph overview
+  history         String? // the model's story & significance
+  notableFacts    String? // JSON array of interesting facts
+  designer        String?
+  originCountry   String?
+  msrp            Float? // original retail price (USD) if known
+  // Scarcity / availability
+  productionStatus String? // In production | Discontinued | Limited edition | Vintage
+  limitedEdition   String? // e.g. "Limited to 500 pieces" or null
+  scarcity         String? // qualitative note on rarity & availability
+  // Collection meta
+  status          String   @default("owned") // owned | wishlist | watching
+  condition       String?
+  purchasePrice   Float?
+  purchaseDate    DateTime?
+  notes           String?
+  imageUrl        String? // cover photo
+  // Service tracking
+  lastServicedDate     DateTime?
+  serviceIntervalYears Int?     @default(5)
+  // AI meta
+  confidence      Int? // 0-100 recognition confidence
+  estValueLow     Float?
+  estValueHigh    Float?
+  specJson        String? // full raw AI response for reference
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  valuations      Valuation[]
+  photos          Photo[]
+  documents       Document[]
+  serviceRecords  ServiceRecord[]
+}
+
+model Valuation {
+  id        String   @id @default(cuid())
+  watchId   String
+  watch     Watch    @relation(fields: [watchId], references: [id], onDelete: Cascade)
+  low       Float
+  high      Float
+  currency  String   @default("USD")
+  source    String?
+  createdAt DateTime @default(now())
+}
+
+// Additional photos for a watch (dial, caseback, movement, clasp, serial…).
+model Photo {
+  id        String   @id @default(cuid())
+  watchId   String
+  watch     Watch    @relation(fields: [watchId], references: [id], onDelete: Cascade)
+  url       String
+  caption   String?
+  createdAt DateTime @default(now())
+}
+
+// Provenance documents: receipts, warranty cards, service invoices, certificates.
+model Document {
+  id        String   @id @default(cuid())
+  watchId   String
+  watch     Watch    @relation(fields: [watchId], references: [id], onDelete: Cascade)
+  url       String
+  name      String
+  kind      String   @default("other") // receipt | warranty | service | certificate | other
+  mimeType  String?
+  createdAt DateTime @default(now())
+}
+
+// Service & maintenance history.
+model ServiceRecord {
+  id          String   @id @default(cuid())
+  watchId     String
+  watch       Watch    @relation(fields: [watchId], references: [id], onDelete: Cascade)
+  date        DateTime
+  type        String   @default("Full service") // Full service | Movement | Polish | Battery | Other
+  provider    String?
+  cost        Float?
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+// Simple key/value store for app configuration (e.g. the Anthropic API key).
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// Caches AI results keyed by a hash of the input (image / listing) so the
+// same photo or listing is never analyzed — or billed — twice.
+model AiCache {
+  key       String   @id // e.g. "identify:<sha256>" or "vet:<sha256>"
+  kind      String // identify | vet
+  result    String // JSON
+  createdAt DateTime @default(now())
+}
+
+// One row per billed AI call — used to estimate spend and warn near budget.
+model UsageEvent {
+  id           String   @id @default(cuid())
+  kind         String // identify | vet | chat
+  model        String
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  webSearches  Int      @default(0)
+  costUsd      Float    @default(0)
+  createdAt    DateTime @default(now())
+}

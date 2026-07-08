@@ -1,65 +1,122 @@
-import Image from "next/image";
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import WatchCard from "@/components/WatchCard";
+import GettingStarted from "@/components/GettingStarted";
+import { nextServiceDue, serviceStatus } from "@/lib/service";
+import { getKeySource } from "@/lib/settings";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+function money(n: number) {
+  return `$${Math.round(n).toLocaleString("en-US")}`;
+}
+
+export default async function Dashboard() {
+  const [watches, owned] = await Promise.all([
+    prisma.watch.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
+    prisma.watch.findMany({ where: { status: "owned" } }),
+  ]);
+
+  const totalCount = await prisma.watch.count();
+  const keyConfigured = (await getKeySource()) !== "none";
+  const ownedValue = owned.reduce((sum, w) => {
+    if (w.estValueLow && w.estValueHigh) return sum + (w.estValueLow + w.estValueHigh) / 2;
+    return sum;
+  }, 0);
+  const brands = new Set(owned.map((w) => w.brand)).size;
+
+  const serviceDue = owned
+    .map((w) => {
+      const due = nextServiceDue(w.lastServicedDate, w.purchaseDate, w.serviceIntervalYears);
+      return { watch: w, due, status: serviceStatus(due) };
+    })
+    .filter((x) => x.status === "overdue" || x.status === "soon")
+    .sort((a, b) => (a.due?.getTime() ?? 0) - (b.due?.getTime() ?? 0));
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="space-y-10">
+      {/* Hero */}
+      <section className="card p-8 sm:p-10 relative overflow-hidden">
+        <div className="relative z-10 max-w-2xl">
+          <p className="label mb-3">Watch intelligence for collectors</p>
+          <h1 className="font-serif text-4xl sm:text-5xl leading-tight">
+            Know every watch<br />before you own it.
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-muted mt-4 leading-relaxed">
+            Snap a photo to identify any watch, pull its full specs and market value, and vet
+            listings for fakes before you buy. Your entire collection, catalogued and understood.
           </p>
+          <div className="flex flex-wrap gap-3 mt-6">
+            <Link href="/identify" className="btn btn-gold">Identify a watch</Link>
+            <Link href="/vet" className="btn btn-ghost">Vet a purchase</Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* Onboarding checklist */}
+      <GettingStarted keyConfigured={keyConfigured} hasWatch={totalCount > 0} />
+
+      {/* Stats */}
+      <section className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: "Watches", value: totalCount.toString() },
+          { label: "In collection", value: owned.length.toString() },
+          { label: "Est. collection value", value: ownedValue ? money(ownedValue) : "—" },
+          { label: "Brands", value: brands.toString() },
+        ].map((s) => (
+          <div key={s.label} className="card p-5">
+            <p className="label">{s.label}</p>
+            <p className="font-serif text-2xl mt-2 text-accent-soft">{s.value}</p>
+          </div>
+        ))}
+      </section>
+
+      {/* Service reminders */}
+      {serviceDue.length > 0 && (
+        <section className="card p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-2 h-2 rounded-full" style={{ background: "var(--color-warn)" }} />
+            <h2 className="font-serif text-lg">Needs attention</h2>
+          </div>
+          <ul className="space-y-2">
+            {serviceDue.slice(0, 5).map(({ watch, due, status }) => (
+              <li key={watch.id} className="flex items-center justify-between text-sm">
+                <Link href={`/watch/${watch.id}`} className="hover:text-accent">
+                  <span className="text-accent-soft">{watch.brand}</span> {watch.model}
+                </Link>
+                <span style={{ color: status === "overdue" ? "var(--color-danger)" : "var(--color-warn)" }}>
+                  {status === "overdue" ? "Service overdue" : "Service due"} · {due?.toLocaleDateString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Recent */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-serif text-2xl">Recently added</h2>
+          <Link href="/collection" className="text-sm text-accent hover:underline">
+            View collection →
+          </Link>
         </div>
-      </main>
+        <div className="rule mb-6" />
+        {watches.length === 0 ? (
+          <div className="card p-10 text-center">
+            <p className="text-muted">Your collection is empty.</p>
+            <Link href="/identify" className="btn btn-gold mt-4 inline-flex">
+              Add your first watch
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {watches.map((w) => (
+              <WatchCard key={w.id} watch={w} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
