@@ -52,6 +52,7 @@ files must live on a **persistent volume**. Setup (one time):
    ```
    DATABASE_URL = file:/data/caliber.db
    UPLOAD_DIR   = /data/uploads
+   BACKUP_DIR   = /data/backups          # automatic DB backups (see below)
    ANTHROPIC_API_KEY = sk-ant-...        # optional; can also be set in-app
    ```
 4. **Deploy.** On boot, `npm start` runs `prisma db push` (creating the SQLite
@@ -67,6 +68,35 @@ That's it. The database and all photos/documents now persist across deploys.
   (multi-user, multiple replicas), switch the Prisma datasource to PostgreSQL
   (Railway has a one-click Postgres) and set `DATABASE_URL` to its connection string.
 - Export a backup anytime from **Settings → Backup & export**.
+
+## Data protection & backups
+
+The collection database is protected from code changes by **automatic backups**:
+
+- A snapshot of the SQLite database is taken **before every server start**
+  (`npm run dev` and `npm start`) and **before every schema push** (`npm run db:push`).
+- Backups are stored **outside the project folder** (`~/.caliber/backups` locally,
+  or `BACKUP_DIR` — point it at the persistent volume on Railway), so
+  `git clean`, checkouts, and reinstalls can't touch them. The newest 14 are kept.
+- **Restore** at any time:
+  ```bash
+  npm run restore              # list available backups
+  npm run restore -- latest    # roll back to the newest one
+  ```
+  A restore saves the current database first (as a `-pre-restore` backup),
+  so restoring can never lose data either.
+
+Rules that keep the data safe when changing code:
+
+- **Always use `npm run db:push`** for schema changes (never raw
+  `prisma db push`) — it backs up first. If Prisma warns a change would
+  destroy data, **do not** add `--accept-data-loss`; redesign the change
+  (add a new column instead of renaming, etc.).
+- Never run `prisma migrate reset` or `db push --force-reset` — these wipe
+  the database by design.
+- The database and uploads are gitignored; git operations never touch them —
+  but note that photos/documents in `uploads/` are **not** in the DB backups.
+  Copy that folder (or the Railway volume) separately once in a while.
 
 ## How it works
 

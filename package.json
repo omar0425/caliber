@@ -6,9 +6,12 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/backup.mjs && next dev",
     "build": "prisma generate && next build",
-    "start": "prisma db push --skip-generate && next start",
+    "start": "node scripts/backup.mjs && prisma db push --skip-generate && next start",
+    "db:push": "node scripts/backup.mjs && prisma db push",
+    "backup": "node scripts/backup.mjs",
+    "restore": "node scripts/restore.mjs",
     "lint": "eslint"
   },
   "dependencies": {
