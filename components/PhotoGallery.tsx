@@ -76,24 +76,26 @@ export default function PhotoGallery({
           {photos.map((p) => {
             const isCover = p.url === coverUrl;
             return (
-              <div key={p.id} className="group relative aspect-square rounded-lg overflow-hidden border border-line">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.url} alt={p.caption ?? "Watch photo"} className="w-full h-full object-cover" />
+              <div key={p.id} className="relative aspect-square rounded-lg overflow-hidden border border-line">
+                <a href={p.url} target="_blank" rel="noreferrer" aria-label="View full photo">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.url} alt={p.caption ?? "Watch photo"} className="w-full h-full object-cover" />
+                </a>
                 {isCover && (
                   <span className="absolute top-1 left-1 text-[10px] bg-accent text-black px-1.5 py-0.5 rounded font-semibold">
                     Cover
                   </span>
                 )}
-                <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 text-xs">
-                  {!isCover && (
-                    <button onClick={() => setCover(p.id)} className="text-accent hover:underline">
-                      Set as cover
+                {/* Always-visible action bar (touch-friendly — no hover required) */}
+                <div className="absolute bottom-0 inset-x-0 flex text-[11px] font-medium bg-black/55 backdrop-blur-sm">
+                  {!isCover ? (
+                    <button onClick={() => setCover(p.id)} className="flex-1 py-1.5 text-accent active:bg-white/10">
+                      ★ Cover
                     </button>
+                  ) : (
+                    <span className="flex-1 py-1.5 text-center text-muted">Cover</span>
                   )}
-                  <a href={p.url} target="_blank" rel="noreferrer" className="text-ink hover:underline">
-                    View full
-                  </a>
-                  <button onClick={() => remove(p.id)} className="text-danger hover:underline">
+                  <button onClick={() => remove(p.id)} className="flex-1 py-1.5 text-danger border-l border-white/10 active:bg-white/10">
                     Delete
                   </button>
                 </div>
