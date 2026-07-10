@@ -100,12 +100,32 @@ body {
 .input:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(200,164,92,0.18); }
 .label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--color-muted); font-weight: 600; }
 
-/* Print: hide chrome, force the appraisal onto clean white paper */
+/* Print: hide chrome, force everything onto clean white paper.
+   The app is dark-themed, so remap the palette to dark-on-white for paper. */
 @media print {
-  header, footer, .no-print { display: none !important; }
-  body { background: #fff !important; }
+  :root {
+    --color-base: #fff;
+    --color-surface: #fff;
+    --color-surface-2: #fff;
+    --color-line: #ddd;
+    --color-ink: #14141a;
+    --color-muted: #55555e;
+    --color-accent-soft: #8a6d2f;
+  }
+  header, footer, .no-print, button { display: none !important; }
+  html { color-scheme: light; }
+  body { background: #fff !important; color: #14141a; }
   main { padding: 0 !important; max-width: none !important; }
   .paper { box-shadow: none !important; border: none !important; }
+  .card { background: #fff; break-inside: avoid; }
+  .shimmer::after { display: none; }
+  /* Form fields print as plain text, not boxes */
+  .input {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: #14141a;
+  }
 }
 
 .paper {

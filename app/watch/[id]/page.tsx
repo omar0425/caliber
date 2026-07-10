@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import WatchDetailClient from "./WatchDetailClient";
+import PrintButton from "@/components/PrintButton";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,10 @@ export default async function WatchPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="space-y-6">
-      <Link href="/collection" className="text-sm text-muted hover:text-ink">← Back to collection</Link>
+      <div className="flex items-center justify-between gap-4 no-print">
+        <Link href="/collection" className="text-sm text-muted hover:text-ink">← Back to collection</Link>
+        <PrintButton />
+      </div>
       <WatchDetailClient
         watch={{
           ...watch,

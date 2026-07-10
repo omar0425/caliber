@@ -8,6 +8,7 @@ const CSV_COLUMNS: { key: string; label: string }[] = [
   { key: "model", label: "Model" },
   { key: "referenceNumber", label: "Reference" },
   { key: "nickname", label: "Nickname" },
+  { key: "owner", label: "Owner" },
   { key: "status", label: "Status" },
   { key: "movement", label: "Movement" },
   { key: "caliber", label: "Caliber" },

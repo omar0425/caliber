@@ -11,6 +11,11 @@ type Usage = {
   budget: number | null;
   level: "none" | "ok" | "low" | "over";
 };
+type Ownership = {
+  total: number;
+  unassigned: number;
+  owners: { owner: string; count: number }[];
+};
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -24,6 +29,10 @@ export default function SettingsPage() {
   const [usage, setUsage] = useState<Usage | null>(null);
   const [budgetInput, setBudgetInput] = useState("");
   const [budgetMsg, setBudgetMsg] = useState<string | null>(null);
+  const [ownership, setOwnership] = useState<Ownership | null>(null);
+  const [ownerInput, setOwnerInput] = useState("");
+  const [ownerMsg, setOwnerMsg] = useState<string | null>(null);
+  const [assigning, setAssigning] = useState(false);
 
   async function loadUsage() {
     const res = await fetch("/api/usage");
@@ -69,6 +78,36 @@ export default function SettingsPage() {
     }
   }
 
+  async function loadOwnership() {
+    const res = await fetch("/api/watches/assign-owner");
+    if (res.ok) setOwnership(await res.json());
+  }
+
+  async function assignOwner() {
+    if (!ownership) return;
+    const owner = ownerInput.trim();
+    if (!owner) return;
+    if (!confirm(`Mark all ${ownership.unassigned} watches that have no owner yet as belonging to “${owner}”?`)) return;
+    setAssigning(true);
+    setOwnerMsg(null);
+    try {
+      const res = await fetch("/api/watches/assign-owner", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ owner }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to assign owner.");
+      setOwnerMsg(`Done — ${data.updated} watch${data.updated === 1 ? "" : "es"} marked as ${data.owner}'s.`);
+      setOwnerInput("");
+      loadOwnership();
+    } catch (e) {
+      setOwnerMsg(e instanceof Error ? e.message : "Failed to assign owner.");
+    } finally {
+      setAssigning(false);
+    }
+  }
+
   async function load() {
     const res = await fetch("/api/settings");
     setStatus(await res.json());
@@ -76,6 +115,7 @@ export default function SettingsPage() {
   useEffect(() => {
     load();
     loadUsage();
+    loadOwnership();
   }, []);
 
   async function save() {
@@ -241,6 +281,53 @@ export default function SettingsPage() {
           <p className="text-xs text-muted mt-2">
             You&apos;ll see an amber banner at 80% and a red one at 100%. Analyses keep working past the
             budget — it&apos;s a heads-up, not a hard stop.
+          </p>
+        </div>
+      </div>
+
+      {/* Ownership */}
+      <div className="card p-6 space-y-4">
+        <div>
+          <h3 className="font-serif text-lg">Ownership</h3>
+          <p className="text-sm text-muted mt-1">
+            There&apos;s no login yet, so more than one person may be using this collection. Record
+            who the watches belong to now, so they can be moved to that person&apos;s own account
+            when logins are added. Each watch also has its own Owner field on its detail page.
+          </p>
+        </div>
+
+        {ownership && (
+          <p className="text-sm text-muted">
+            {ownership.total} watch{ownership.total === 1 ? "" : "es"} in the database
+            {" — "}
+            {ownership.unassigned} with no owner recorded
+            {ownership.owners.map((o) => `, ${o.count} marked ${o.owner}`).join("")}.
+          </p>
+        )}
+
+        <div>
+          <label className="label">Owner name or email</label>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <input
+              value={ownerInput}
+              onChange={(e) => setOwnerInput(e.target.value)}
+              placeholder="e.g. mike@example.com"
+              className="input max-w-xs"
+            />
+            <button
+              onClick={assignOwner}
+              disabled={assigning || !ownerInput.trim() || !ownership || ownership.unassigned === 0}
+              className="btn btn-gold text-sm"
+            >
+              {assigning
+                ? "Assigning…"
+                : `Mark ${ownership ? ownership.unassigned : "all"} unassigned watch${ownership?.unassigned === 1 ? "" : "es"} as theirs`}
+            </button>
+          </div>
+          {ownerMsg && <p className="text-sm text-muted mt-2">{ownerMsg}</p>}
+          <p className="text-xs text-muted mt-2">
+            Only watches without an owner are touched, so it&apos;s safe to run again later for a
+            different person — already-assigned watches keep their owner.
           </p>
         </div>
       </div>

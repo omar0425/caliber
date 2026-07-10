@@ -42,6 +42,7 @@ model Watch {
   limitedEdition   String? // e.g. "Limited to 500 pieces" or null
   scarcity         String? // qualitative note on rarity & availability
   // Collection meta
+  owner           String? // who this watch belongs to (name or email) — no login yet
   status          String   @default("owned") // owned | wishlist | watching
   condition       String?
   purchasePrice   Float?

@@ -40,6 +40,7 @@ type WatchRecord = {
   productionStatus: string | null;
   limitedEdition: string | null;
   scarcity: string | null;
+  owner: string | null;
   status: string;
   condition: string | null;
   purchasePrice: number | null;
@@ -73,6 +74,7 @@ function parseFacts(raw: string | null): string[] {
 export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
   const router = useRouter();
   const [status, setStatus] = useState(watch.status);
+  const [owner, setOwner] = useState(watch.owner ?? "");
   const [condition, setCondition] = useState(watch.condition ?? "");
   const [purchasePrice, setPurchasePrice] = useState(watch.purchasePrice?.toString() ?? "");
   const [notes, setNotes] = useState(watch.notes ?? "");
@@ -119,7 +121,7 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
     await fetch(`/api/watches/${watch.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, condition, purchasePrice, notes }),
+      body: JSON.stringify({ status, owner: owner.trim() || null, condition, purchasePrice, notes }),
     });
     setSaving(false);
     setSaved(true);
@@ -195,12 +197,16 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
               <label className="label">Purchase price (USD)</label>
               <input value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} inputMode="decimal" placeholder="e.g. 8500" className="input mt-1" />
             </div>
+            <div>
+              <label className="label">Owner</label>
+              <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="e.g. mike@example.com" className="input mt-1" />
+            </div>
           </div>
           <div>
             <label className="label">Notes</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Service history, provenance, box & papers…" className="input mt-1 resize-y" />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 no-print">
             <button onClick={save} disabled={saving} className="btn btn-gold">
               {saving ? "Saving…" : saved ? "Saved ✓" : "Save details"}
             </button>
@@ -218,7 +224,9 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
           intervalYears={watch.serviceIntervalYears}
         />
 
-        <WatchChat watchId={watch.id} watchName={`${watch.brand} ${watch.model}`} />
+        <div className="no-print">
+          <WatchChat watchId={watch.id} watchName={`${watch.brand} ${watch.model}`} />
+        </div>
       </div>
     </div>
   );
