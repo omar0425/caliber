@@ -4,7 +4,7 @@
 const STRING_FIELDS = [
   "brand", "model", "referenceNumber", "nickname", "movement", "caliber",
   "caseMaterial", "dialColor", "bezel", "crystal", "braceletType",
-  "complications", "yearProduced", "status", "condition", "notes",
+  "complications", "yearProduced", "owner", "status", "condition", "notes",
   "imageUrl", "specJson", "summary", "history", "designer", "originCountry",
   "productionStatus", "limitedEdition", "scarcity",
 ] as const;

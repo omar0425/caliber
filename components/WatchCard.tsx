@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CardPrintButton from "./CardPrintButton";
 
 export type WatchCardData = {
   id: string;
@@ -25,7 +26,9 @@ export default function WatchCard({ watch }: { watch: WatchCardData }) {
       : null;
 
   return (
-    <Link href={`/watch/${watch.id}`} className="card card-hover overflow-hidden flex flex-col">
+    <div className="card card-hover overflow-hidden flex flex-col relative">
+      <CardPrintButton watchId={watch.id} label={`${watch.brand} ${watch.model}`} />
+      <Link href={`/watch/${watch.id}`} className="flex flex-col flex-1">
       <div className="aspect-square bg-surface-2 flex items-center justify-center overflow-hidden">
         {watch.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -47,6 +50,7 @@ export default function WatchCard({ watch }: { watch: WatchCardData }) {
         </p>
         {value && <p className="text-sm text-accent-soft mt-auto pt-3">{value}</p>}
       </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
