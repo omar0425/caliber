@@ -6,10 +6,10 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "node scripts/backup.mjs && next dev",
+    "dev": "node scripts/check-db-path.mjs && node scripts/backup.mjs && next dev",
     "build": "prisma generate && next build",
-    "start": "node scripts/backup.mjs && prisma db push --skip-generate && next start",
-    "db:push": "node scripts/backup.mjs && prisma db push",
+    "start": "node scripts/check-db-path.mjs && node scripts/backup.mjs && prisma db push --skip-generate && next start",
+    "db:push": "node scripts/check-db-path.mjs && node scripts/backup.mjs && prisma db push",
     "backup": "node scripts/backup.mjs",
     "restore": "node scripts/restore.mjs",
     "lint": "eslint"
