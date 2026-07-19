@@ -26,7 +26,7 @@ export default function WatchCard({ watch }: { watch: WatchCardData }) {
       : null;
 
   return (
-    <div className="card card-hover overflow-hidden flex flex-col relative">
+    <div className="group card card-hover overflow-hidden flex flex-col relative">
       <CardPrintButton watchId={watch.id} label={`${watch.brand} ${watch.model}`} />
       <Link href={`/watch/${watch.id}`} className="flex flex-col flex-1">
       <div className="aspect-square bg-surface-2 flex items-center justify-center overflow-hidden">

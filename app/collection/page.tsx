@@ -11,10 +11,20 @@ const FILTERS = [
   { key: "watching", label: "Watching" },
 ];
 
+const SORTS: Record<string, { label: string; fn: (a: WatchCardData, b: WatchCardData) => number }> = {
+  recent: { label: "Recently added", fn: () => 0 }, // API order (newest first)
+  value: {
+    label: "Value: high to low",
+    fn: (a, b) => (((b.estValueLow ?? 0) + (b.estValueHigh ?? 0)) / 2) - (((a.estValueLow ?? 0) + (a.estValueHigh ?? 0)) / 2),
+  },
+  brand: { label: "Brand A–Z", fn: (a, b) => a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model) },
+};
+
 export default function CollectionPage() {
   const [watches, setWatches] = useState<WatchCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("all");
+  const [sort, setSort] = useState("recent");
   const [q, setQ] = useState("");
 
   useEffect(() => {
@@ -33,6 +43,10 @@ export default function CollectionPage() {
 
   const empty = !loading && watches.length === 0;
   const heading = useMemo(() => (q || status !== "all" ? "Results" : "Your collection"), [q, status]);
+  const sorted = useMemo(
+    () => (sort === "recent" ? watches : [...watches].sort(SORTS[sort].fn)),
+    [watches, sort]
+  );
 
   return (
     <div className="space-y-6">
@@ -51,7 +65,7 @@ export default function CollectionPage() {
             <button
               key={f.key}
               onClick={() => setStatus(f.key)}
-              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+              className={`px-4 py-2.5 sm:px-3.5 sm:py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                 status === f.key
                   ? "border-accent text-accent bg-surface-2"
                   : "border-line text-muted hover:text-ink"
@@ -61,12 +75,24 @@ export default function CollectionPage() {
             </button>
           ))}
         </div>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search brand, model, reference…"
-          className="input max-w-xs"
-        />
+        <div className="flex flex-wrap gap-2 items-center">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search brand, model, reference…"
+            className="input max-w-xs"
+          />
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            aria-label="Sort collection"
+            className="input w-auto"
+          >
+            {Object.entries(SORTS).map(([k, s]) => (
+              <option key={k} value={k}>{s.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {loading ? (
@@ -82,7 +108,7 @@ export default function CollectionPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {watches.map((w) => (
+          {sorted.map((w) => (
             <WatchCard key={w.id} watch={w} />
           ))}
         </div>

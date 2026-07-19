@@ -58,24 +58,26 @@ export default function GettingStarted({
         {items.map((it, i) => (
           <li
             key={i}
-            className="flex items-center gap-4 p-4 rounded-xl border border-line/70 bg-surface-2/40"
+            className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 rounded-xl border border-line/70 bg-surface-2/40"
           >
-            <span
-              className="w-8 h-8 rounded-full flex items-center justify-center text-base font-semibold shrink-0"
-              style={{
-                background: it.done ? "var(--color-good)" : "var(--color-surface-2)",
-                color: it.done ? "#08120b" : "var(--color-muted)",
-                border: it.done ? "none" : "1px solid var(--color-line)",
-              }}
-            >
-              {it.done ? "✓" : i + 1}
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className={`font-medium ${it.done ? "text-muted line-through" : "text-ink"}`}>{it.title}</p>
-              <p className="text-sm text-muted">{it.desc}</p>
+            <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
+              <span
+                className="w-8 h-8 rounded-full flex items-center justify-center text-base font-semibold shrink-0"
+                style={{
+                  background: it.done ? "var(--color-good)" : "var(--color-surface-2)",
+                  color: it.done ? "#08120b" : "var(--color-muted)",
+                  border: it.done ? "none" : "1px solid var(--color-line)",
+                }}
+              >
+                {it.done ? "✓" : i + 1}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className={`font-medium ${it.done ? "text-muted line-through" : "text-ink"}`}>{it.title}</p>
+                <p className="text-sm text-muted">{it.desc}</p>
+              </div>
             </div>
             {!it.done && (
-              <Link href={it.href} className="btn btn-ghost text-sm shrink-0">
+              <Link href={it.href} className="btn btn-ghost text-sm shrink-0 self-start sm:self-auto ml-12 sm:ml-0">
                 {it.cta}
               </Link>
             )}

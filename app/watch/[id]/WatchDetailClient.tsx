@@ -7,6 +7,7 @@ import PhotoGallery, { PhotoLite } from "@/components/PhotoGallery";
 import DocumentVault, { DocLite } from "@/components/DocumentVault";
 import ServiceLog, { ServiceLite } from "@/components/ServiceLog";
 import WatchChat from "@/components/WatchChat";
+import ValuationHistory from "@/components/ValuationHistory";
 import { WatchSpec } from "@/lib/types";
 
 type Valuation = { id: string; low: number; high: number; source: string | null; createdAt: string };
@@ -137,10 +138,13 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
   }
 
   return (
-    <div className="grid lg:grid-cols-[minmax(0,1fr)_1.1fr] gap-8 items-start">
+    // On mobile the two columns flatten into one flow (max-lg:contents) and each
+    // card is explicitly ordered so the spec sheet appears right after the photo —
+    // what the watch IS comes before its photo gallery and paperwork.
+    <div className="grid lg:grid-cols-[minmax(0,1fr)_1.1fr] gap-4 lg:gap-8 items-start">
       {/* Image + valuation history */}
-      <div className="space-y-4">
-        <div className="card overflow-hidden aspect-square bg-surface-2 flex items-center justify-center">
+      <div className="space-y-4 max-lg:contents">
+        <div className="max-lg:order-1 card overflow-hidden aspect-square bg-surface-2 flex items-center justify-center">
           {watch.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={watch.imageUrl} alt={`${watch.brand} ${watch.model}`} className="w-full h-full object-cover" />
@@ -149,36 +153,26 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
           )}
         </div>
 
-        <PhotoGallery watchId={watch.id} photos={watch.photos} coverUrl={watch.imageUrl} />
+        <div className="max-lg:order-4">
+          <PhotoGallery watchId={watch.id} photos={watch.photos} coverUrl={watch.imageUrl} />
+        </div>
 
-        <DocumentVault watchId={watch.id} documents={watch.documents} />
+        <div className="max-lg:order-5">
+          <DocumentVault watchId={watch.id} documents={watch.documents} />
+        </div>
 
-        {watch.valuations.length > 0 && (
-          <div className="card p-5">
-            <p className="label mb-3">Valuation history</p>
-            <ul className="space-y-2">
-              {watch.valuations.map((v) => (
-                <li key={v.id} className="flex justify-between text-sm">
-                  <span className="text-muted">
-                    {new Date(v.createdAt).toLocaleDateString()} · {v.source ?? "—"}
-                  </span>
-                  <span className="text-accent-soft">
-                    ${v.low.toLocaleString()} – ${v.high.toLocaleString()}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <div className="max-lg:order-6">
+          <ValuationHistory watchId={watch.id} valuations={watch.valuations} />
+        </div>
       </div>
 
       {/* Specs + collection meta */}
-      <div className="space-y-6">
-        <div className="card p-6">
+      <div className="space-y-6 max-lg:contents">
+        <div className="max-lg:order-2 card p-6">
           <SpecSheet spec={spec} />
         </div>
 
-        <div className="card p-6 space-y-4">
+        <div className="max-lg:order-3 card p-6 space-y-4">
           <h3 className="font-serif text-xl">Collection details</h3>
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
@@ -216,15 +210,17 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
           </div>
         </div>
 
-        <ServiceLog
-          watchId={watch.id}
-          records={watch.serviceRecords}
-          lastServicedDate={watch.lastServicedDate}
-          purchaseDate={watch.purchaseDate}
-          intervalYears={watch.serviceIntervalYears}
-        />
+        <div className="max-lg:order-7">
+          <ServiceLog
+            watchId={watch.id}
+            records={watch.serviceRecords}
+            lastServicedDate={watch.lastServicedDate}
+            purchaseDate={watch.purchaseDate}
+            intervalYears={watch.serviceIntervalYears}
+          />
+        </div>
 
-        <div className="no-print">
+        <div className="max-lg:order-8 no-print">
           <WatchChat watchId={watch.id} watchName={`${watch.brand} ${watch.model}`} />
         </div>
       </div>

@@ -15,7 +15,7 @@ export default function CardPrintButton({ watchId, label }: { watchId: string; l
         e.stopPropagation();
         window.open(`/watch/${watchId}?print=1`, "_blank", "noopener");
       }}
-      className="absolute top-2 right-2 z-10 flex items-center justify-center w-9 h-9 rounded-lg bg-base/70 backdrop-blur border border-line text-muted hover:text-accent hover:border-accent transition-colors"
+      className="absolute top-2 right-2 z-10 flex items-center justify-center w-9 h-9 rounded-lg bg-base/70 backdrop-blur border border-line text-muted hover:text-accent hover:border-accent transition-[color,border-color,opacity] sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
     >
       {/* printer icon */}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

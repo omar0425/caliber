@@ -25,7 +25,7 @@ export default async function AppraisalPage() {
         <PrintButton />
       </div>
 
-      <div className="paper p-10 max-w-3xl mx-auto">
+      <div className="paper p-5 sm:p-10 max-w-3xl mx-auto">
         {/* Header */}
         <div className="flex items-start justify-between border-b-2 border-[#c8a45c] pb-4">
           <div>
@@ -38,8 +38,9 @@ export default async function AppraisalPage() {
           </div>
         </div>
 
-        {/* Table */}
-        <table className="w-full text-sm mt-6 border-collapse">
+        {/* Table — horizontally scrollable on narrow screens so it never overflows the page */}
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[26rem] text-sm mt-6 border-collapse">
           <thead>
             <tr className="text-left border-b border-[#ddd] text-[#6a6a72]">
               <th className="py-2 pr-2 font-semibold">Brand &amp; Model</th>
@@ -75,6 +76,7 @@ export default async function AppraisalPage() {
             </tr>
           </tfoot>
         </table>
+        </div>
 
         {/* Disclaimer */}
         <p className="text-xs text-[#6a6a72] mt-8 leading-relaxed">
