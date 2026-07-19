@@ -7,6 +7,7 @@ import PhotoGallery, { PhotoLite } from "@/components/PhotoGallery";
 import DocumentVault, { DocLite } from "@/components/DocumentVault";
 import ServiceLog, { ServiceLite } from "@/components/ServiceLog";
 import WatchChat from "@/components/WatchChat";
+import ValuationHistory from "@/components/ValuationHistory";
 import { WatchSpec } from "@/lib/types";
 
 type Valuation = { id: string; low: number; high: number; source: string | null; createdAt: string };
@@ -160,23 +161,9 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
           <DocumentVault watchId={watch.id} documents={watch.documents} />
         </div>
 
-        {watch.valuations.length > 0 && (
-          <div className="max-lg:order-6 card p-5">
-            <p className="label mb-3">Valuation history</p>
-            <ul className="space-y-2">
-              {watch.valuations.map((v) => (
-                <li key={v.id} className="flex justify-between text-sm">
-                  <span className="text-muted">
-                    {new Date(v.createdAt).toLocaleDateString()} · {v.source ?? "—"}
-                  </span>
-                  <span className="text-accent-soft">
-                    ${v.low.toLocaleString()} – ${v.high.toLocaleString()}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <div className="max-lg:order-6">
+          <ValuationHistory watchId={watch.id} valuations={watch.valuations} />
+        </div>
       </div>
 
       {/* Specs + collection meta */}
