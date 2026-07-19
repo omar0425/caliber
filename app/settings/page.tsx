@@ -317,7 +317,7 @@ export default function SettingsPage() {
             <button
               onClick={assignOwner}
               disabled={assigning || !ownerInput.trim() || !ownership || ownership.unassigned === 0}
-              className="btn btn-gold text-sm"
+              className="btn btn-gold text-sm w-full sm:w-auto whitespace-normal!"
             >
               {assigning
                 ? "Assigning…"

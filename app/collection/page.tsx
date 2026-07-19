@@ -51,7 +51,7 @@ export default function CollectionPage() {
             <button
               key={f.key}
               onClick={() => setStatus(f.key)}
-              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+              className={`px-4 py-2.5 sm:px-3.5 sm:py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                 status === f.key
                   ? "border-accent text-accent bg-surface-2"
                   : "border-line text-muted hover:text-ink"
