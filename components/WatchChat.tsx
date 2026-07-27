@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; sources?: string[] };
 
 const SUGGESTIONS = [
   "How scarce is this reference?",
@@ -30,11 +30,23 @@ export default function WatchChat({ watchId, watchName }: { watchId: string; wat
       const res = await fetch(`/api/watches/${watchId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next }),
+        body: JSON.stringify({
+          messages: next.map(({ role, content: messageContent }) => ({
+            role,
+            content: messageContent,
+          })),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Chat failed.");
-      setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content: data.reply,
+          sources: Array.isArray(data.sources) ? data.sources : [],
+        },
+      ]);
       requestAnimationFrame(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Chat failed.");
@@ -75,6 +87,22 @@ export default function WatchChat({ watchId, watchName }: { watchId: string; wat
               }`}
             >
               {m.content}
+              {m.role === "assistant" && m.sources && m.sources.length > 0 && (
+                <div className="mt-3 pt-2 border-t border-line/60 space-y-1">
+                  <p className="text-[11px] uppercase tracking-wide text-muted">Sources</p>
+                  {m.sources.slice(0, 4).map((source, sourceIndex) => (
+                    <a
+                      key={source}
+                      href={source}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-xs text-accent hover:underline truncate"
+                    >
+                      {sourceIndex + 1}. {source}
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}

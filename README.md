@@ -22,7 +22,7 @@ Built with Next.js 16, React 19, Prisma + SQLite, and the OpenAI Responses API
 
 ```bash
 npm install
-npx prisma db push        # creates the local SQLite database
+npm run db:push           # safely creates the local SQLite database
 npm run dev               # http://localhost:3000
 ```
 
@@ -34,8 +34,9 @@ The app runs in **demo mode** with mock results until you add a key. The easiest
 2. Paste your OpenAI API key (get one at
    https://platform.openai.com/api-keys) and click **Save & go live**.
 
-That's it — recognition and vetting immediately switch to real AI. The key is stored in
-your local database and shown masked; remove it anytime to return to demo mode.
+That's it — recognition and vetting immediately switch to real AI. The key is shown
+masked and, when a deployment encryption or login secret is configured, encrypted at
+rest in the local database. Remove it anytime to return to demo mode.
 
 Prefer environment config? Set `OPENAI_API_KEY` in `.env` and restart. This is safer
 than storing the key in SQLite.
@@ -58,6 +59,7 @@ files must live on a **persistent volume**. Setup (one time):
    OPENAI_MODEL = gpt-5.6-luna          # cost-efficient vision default
    CALIBER_AUTH_USER = caliber          # production login
    CALIBER_AUTH_SECRET = use-a-long-random-password
+   CALIBER_KEY_ENCRYPTION_SECRET = optional-separate-stable-secret
    ```
 4. **Deploy.** On boot, `npm start` runs `prisma db push` (creating the SQLite
    schema on the volume) and then starts Next.js. Railway provides `PORT`
@@ -117,7 +119,12 @@ Rules that keep the data safe when changing code:
 - Photos and documents require the deployment login and use private, no-store responses.
 - Images are limited to 10 MB and documents to 20 MB by default. File signatures and
   image decodability are verified before storage.
-- The monthly AI budget is a hard server-side cap. Requests are also rate-limited.
+- AI prompts limit research to four web searches. Sources returned by OpenAI are shown
+  as clickable links rather than trusting model-generated URLs.
+- The monthly AI budget is a local estimated-spend guard and requests are rate-limited.
+  Configure a project budget in the OpenAI Platform as the authoritative billing limit.
+- Vetting images are processed without permanent storage. Unreferenced identification
+  uploads older than 24 hours are removed at startup.
 - Run `npm run check` before deployment. GitHub Actions runs lint, type-check, tests,
   build, dependency audit, and CodeQL automatically.
 - For multiple replicas, move rate limiting to Redis, uploads to private S3/R2 with

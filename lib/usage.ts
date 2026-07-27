@@ -1,18 +1,41 @@
 import type { Response } from "openai/resources/responses/responses";
 import { prisma } from "./prisma";
 
-// $ per single token. Update if the model changes.
-type Price = { input: number; output: number };
+// USD per single token. Keep in sync with the official OpenAI pricing page.
+type Price = { input: number; cachedInput: number; output: number };
 const PRICING: Record<string, Price> = {
-  "gpt-5.6-sol": { input: 5 / 1e6, output: 30 / 1e6 },
-  "gpt-5.6-terra": { input: 2.5 / 1e6, output: 15 / 1e6 },
-  "gpt-5.6-luna": { input: 1 / 1e6, output: 6 / 1e6 },
+  "gpt-5.6-sol": { input: 5 / 1e6, cachedInput: 0.5 / 1e6, output: 30 / 1e6 },
+  "gpt-5.6-terra": { input: 2.5 / 1e6, cachedInput: 0.25 / 1e6, output: 15 / 1e6 },
+  "gpt-5.6-luna": { input: 1 / 1e6, cachedInput: 0.1 / 1e6, output: 6 / 1e6 },
 };
 const WEB_SEARCH_COST = 0.01;
 const DEFAULT_PRICE = PRICING["gpt-5.6-luna"];
 
 function countWebSearches(response: Response): number {
   return response.output.filter((item) => item.type === "web_search_call").length;
+}
+
+export function estimateUsageCost(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+  webSearches: number,
+  cachedInputTokens = 0,
+  cacheWriteTokens = 0
+): number {
+  const p = PRICING[model] ?? DEFAULT_PRICE;
+  const input = Math.max(0, inputTokens);
+  const cached = Math.min(input, Math.max(0, cachedInputTokens));
+  const written = Math.min(input - cached, Math.max(0, cacheWriteTokens));
+  const uncached = input - cached - written;
+
+  return (
+    uncached * p.input +
+    cached * p.cachedInput +
+    written * p.input * 1.25 +
+    Math.max(0, outputTokens) * p.output +
+    Math.max(0, webSearches) * WEB_SEARCH_COST
+  );
 }
 
 // Record the real cost of one billed AI call. Best-effort — never throws.
@@ -26,8 +49,16 @@ export async function recordUsage(
     const inputTokens = u?.input_tokens ?? 0;
     const outputTokens = u?.output_tokens ?? 0;
     const webSearches = countWebSearches(response);
-    const p = PRICING[model] ?? DEFAULT_PRICE;
-    const costUsd = inputTokens * p.input + outputTokens * p.output + webSearches * WEB_SEARCH_COST;
+    const cachedInputTokens = u?.input_tokens_details?.cached_tokens ?? 0;
+    const cacheWriteTokens = u?.input_tokens_details?.cache_write_tokens ?? 0;
+    const costUsd = estimateUsageCost(
+      model,
+      inputTokens,
+      outputTokens,
+      webSearches,
+      cachedInputTokens,
+      cacheWriteTokens
+    );
     await prisma.usageEvent.create({
       data: { kind, model, inputTokens, outputTokens, webSearches, costUsd },
     });

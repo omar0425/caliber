@@ -9,6 +9,7 @@ import ServiceLog, { ServiceLite } from "@/components/ServiceLog";
 import WatchChat from "@/components/WatchChat";
 import ValuationHistory from "@/components/ValuationHistory";
 import { WatchSpec } from "@/lib/types";
+import { normalizeHttpSources } from "@/lib/aiSources";
 
 type Valuation = { id: string; low: number; high: number; source: string | null; createdAt: string };
 
@@ -72,6 +73,16 @@ function parseFacts(raw: string | null): string[] {
   }
 }
 
+function parseSources(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as { sources?: unknown };
+    return Array.isArray(parsed.sources) ? normalizeHttpSources(parsed.sources) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
   const router = useRouter();
   const [status, setStatus] = useState(watch.status);
@@ -114,7 +125,7 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
     productionStatus: watch.productionStatus,
     limitedEdition: watch.limitedEdition,
     scarcity: watch.scarcity,
-    sources: [],
+    sources: parseSources(watch.specJson),
   };
 
   async function save() {

@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getApiKey, setApiKey, clearApiKey, getKeySource, maskKey } from "@/lib/settings";
+import {
+  getApiKey,
+  setApiKey,
+  clearApiKey,
+  getKeySource,
+  isStoredKeyEncrypted,
+  maskKey,
+} from "@/lib/settings";
+import {
+  enforceContentLength,
+  enforceContentType,
+  RequestError,
+} from "@/lib/security";
 
 export const runtime = "nodejs";
 
@@ -11,16 +23,22 @@ export async function GET() {
     configured: source !== "none",
     source, // "app" | "env" | "none"
     masked: key ? maskKey(key) : null,
+    protectedAtRest: source === "env" || (source === "app" && isStoredKeyEncrypted()),
   });
 }
 
 // POST /api/settings { apiKey } — save the key
 export async function POST(req: NextRequest) {
   try {
+    enforceContentLength(req, 4 * 1024);
+    enforceContentType(req, "application/json");
     const { apiKey } = (await req.json()) as { apiKey?: string };
     const key = apiKey?.trim() ?? "";
     if (!key) {
       return NextResponse.json({ error: "API key is required." }, { status: 400 });
+    }
+    if (key.length > 512) {
+      return NextResponse.json({ error: "That API key is too long." }, { status: 400 });
     }
     if (!key.startsWith("sk-")) {
       return NextResponse.json(
@@ -29,9 +47,17 @@ export async function POST(req: NextRequest) {
       );
     }
     await setApiKey(key);
-    return NextResponse.json({ configured: true, source: "app", masked: maskKey(key) });
-  } catch {
-    return NextResponse.json({ error: "Failed to save key." }, { status: 500 });
+    return NextResponse.json({
+      configured: true,
+      source: "app",
+      masked: maskKey(key),
+      protectedAtRest: isStoredKeyEncrypted(),
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof RequestError ? error.message : "Failed to save key." },
+      { status: error instanceof RequestError ? error.status : 500 }
+    );
   }
 }
 
@@ -39,5 +65,9 @@ export async function POST(req: NextRequest) {
 export async function DELETE() {
   await clearApiKey();
   const source = await getKeySource();
-  return NextResponse.json({ configured: source !== "none", source });
+  return NextResponse.json({
+    configured: source !== "none",
+    source,
+    protectedAtRest: source === "env",
+  });
 }

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { enforceContentLength, RequestError } from "@/lib/security";
+import {
+  enforceContentLength,
+  enforceContentType,
+  RequestError,
+} from "@/lib/security";
 
 export const runtime = "nodejs";
 
@@ -33,10 +37,11 @@ function pick(obj: Record<string, unknown>, keys: string[]) {
   return out;
 }
 
-// POST /api/import  { watches: [...], mode?: "merge" | "replace" }
+// POST /api/import  { watches: [...] }
 export async function POST(req: NextRequest) {
   try {
     enforceContentLength(req, 25 * 1024 * 1024);
+    enforceContentType(req, "application/json");
     const body = (await req.json()) as { watches?: BackupWatch[]; mode?: string };
     const watches = body.watches;
     if (!Array.isArray(watches)) {
@@ -44,6 +49,12 @@ export async function POST(req: NextRequest) {
     }
     if (watches.length > 10_000) {
       return NextResponse.json({ error: "Backup contains too many watches." }, { status: 413 });
+    }
+    if (body.mode === "replace") {
+      return NextResponse.json(
+        { error: "Destructive replace restores are disabled. Import this backup in merge mode." },
+        { status: 400 }
+      );
     }
 
     // Validate dates before any destructive action.
@@ -56,7 +67,6 @@ export async function POST(req: NextRequest) {
     }
 
     const imported = await prisma.$transaction(async (tx) => {
-      if (body.mode === "replace") await tx.watch.deleteMany({});
       let count = 0;
       for (const w of watches) {
         const data = pick(w, WATCH_SCALARS);
@@ -111,7 +121,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ imported });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to import backup.";
-    return NextResponse.json({ error: message }, { status: err instanceof RequestError ? err.status : 500 });
+    console.error("import backup error", err);
+    return NextResponse.json(
+      { error: err instanceof RequestError ? err.message : "Failed to import backup." },
+      { status: err instanceof RequestError ? err.status : 500 }
+    );
   }
 }

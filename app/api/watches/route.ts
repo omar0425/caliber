@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { normalizeWatchInput } from "@/lib/watchData";
 import { Prisma } from "@prisma/client";
+import {
+  enforceContentLength,
+  enforceContentType,
+  RequestError,
+} from "@/lib/security";
 
 export const runtime = "nodejs";
 
@@ -32,7 +37,13 @@ export async function GET(req: NextRequest) {
 // POST /api/watches — create from a spec or manual entry
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as Record<string, unknown>;
+    enforceContentLength(req, 256 * 1024);
+    enforceContentType(req, "application/json");
+    const value = await req.json();
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new RequestError("Watch data must be a JSON object.", 400);
+    }
+    const body = value as Record<string, unknown>;
     const data = normalizeWatchInput(body);
 
     const watch = await prisma.$transaction(async (tx) => {
@@ -60,6 +71,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ watch }, { status: 201 });
   } catch (err) {
     console.error("create watch error", err);
-    return NextResponse.json({ error: "Failed to save watch." }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof RequestError ? err.message : "Failed to save watch." },
+      { status: err instanceof RequestError ? err.status : 500 }
+    );
   }
 }
