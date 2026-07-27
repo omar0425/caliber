@@ -6,6 +6,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "node scripts/check-db-path.mjs && node scripts/auto-restore.mjs && node scripts/backup.mjs && next dev",
     "build": "prisma generate && next build",
     "start": "node scripts/check-db-path.mjs && node scripts/auto-restore.mjs && node scripts/backup.mjs && prisma db push --skip-generate && next start",
