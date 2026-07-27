@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { enforceContentLength, RequestError } from "@/lib/security";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,7 @@ const WATCH_SCALARS = [
   "designer", "originCountry", "msrp", "status", "condition", "purchasePrice",
   "purchaseDate", "notes", "imageUrl", "confidence", "estValueLow",
   "estValueHigh", "specJson", "lastServicedDate", "serviceIntervalYears",
+  "owner", "productionStatus", "limitedEdition", "scarcity",
 ];
 
 function pick(obj: Record<string, unknown>, keys: string[]) {
@@ -34,26 +36,37 @@ function pick(obj: Record<string, unknown>, keys: string[]) {
 // POST /api/import  { watches: [...], mode?: "merge" | "replace" }
 export async function POST(req: NextRequest) {
   try {
+    enforceContentLength(req, 25 * 1024 * 1024);
     const body = (await req.json()) as { watches?: BackupWatch[]; mode?: string };
     const watches = body.watches;
     if (!Array.isArray(watches)) {
       return NextResponse.json({ error: "Invalid backup: no watches array." }, { status: 400 });
     }
-
-    if (body.mode === "replace") {
-      await prisma.watch.deleteMany({}); // cascades to relations
+    if (watches.length > 10_000) {
+      return NextResponse.json({ error: "Backup contains too many watches." }, { status: 413 });
     }
 
-    let imported = 0;
+    // Validate dates before any destructive action.
     for (const w of watches) {
-      const data = pick(w, WATCH_SCALARS);
-      if (!data.brand) data.brand = "Unknown";
-      if (!data.model) data.model = "Unknown";
-      const created = await prisma.watch.create({ data: data as never });
-      imported++;
+      for (const field of ["purchaseDate", "lastServicedDate"]) {
+        if (w[field] && Number.isNaN(new Date(String(w[field])).getTime())) {
+          return NextResponse.json({ error: `Invalid ${field} in backup.` }, { status: 400 });
+        }
+      }
+    }
 
-      for (const v of w.valuations ?? []) {
-        await prisma.valuation.create({
+    const imported = await prisma.$transaction(async (tx) => {
+      if (body.mode === "replace") await tx.watch.deleteMany({});
+      let count = 0;
+      for (const w of watches) {
+        const data = pick(w, WATCH_SCALARS);
+        if (!data.brand) data.brand = "Unknown";
+        if (!data.model) data.model = "Unknown";
+        const created = await tx.watch.create({ data: data as never });
+        count++;
+
+        for (const v of w.valuations ?? []) {
+          await tx.valuation.create({
           data: {
             watchId: created.id,
             low: Number(v.low) || 0,
@@ -63,14 +76,14 @@ export async function POST(req: NextRequest) {
             createdAt: v.createdAt ? new Date(String(v.createdAt)) : undefined,
           },
         });
-      }
-      for (const p of w.photos ?? []) {
-        await prisma.photo.create({
+        }
+        for (const p of w.photos ?? []) {
+          await tx.photo.create({
           data: { watchId: created.id, url: String(p.url), caption: p.caption ? String(p.caption) : null },
         });
-      }
-      for (const d of w.documents ?? []) {
-        await prisma.document.create({
+        }
+        for (const d of w.documents ?? []) {
+          await tx.document.create({
           data: {
             watchId: created.id,
             url: String(d.url),
@@ -79,9 +92,9 @@ export async function POST(req: NextRequest) {
             mimeType: d.mimeType ? String(d.mimeType) : null,
           },
         });
-      }
-      for (const s of w.serviceRecords ?? []) {
-        await prisma.serviceRecord.create({
+        }
+        for (const s of w.serviceRecords ?? []) {
+          await tx.serviceRecord.create({
           data: {
             watchId: created.id,
             date: new Date(String(s.date)),
@@ -91,12 +104,14 @@ export async function POST(req: NextRequest) {
             notes: s.notes ? String(s.notes) : null,
           },
         });
+        }
       }
-    }
+      return count;
+    });
 
     return NextResponse.json({ imported });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to import backup.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: err instanceof RequestError ? err.status : 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { chatAboutWatch, interpretAiError, ChatMessage } from "@/lib/ai";
+import { enforceAiRequest, RequestError } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -30,6 +31,7 @@ function buildContext(w: Record<string, unknown>): string {
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await enforceAiRequest(req);
     const { id } = await params;
     const watch = await prisma.watch.findUnique({ where: { id } });
     if (!watch) return NextResponse.json({ error: "Watch not found" }, { status: 404 });
@@ -37,6 +39,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const body = (await req.json()) as { messages?: ChatMessage[] };
     const messages = (body.messages ?? [])
       .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .map((m) => ({ ...m, content: m.content.slice(0, 4_000) }))
       .slice(-12); // keep the last several turns
     if (messages.length === 0) {
       return NextResponse.json({ error: "No message provided." }, { status: 400 });
@@ -46,6 +49,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ reply });
   } catch (err) {
     console.error("chat error", err);
-    return NextResponse.json({ error: interpretAiError(err) }, { status: 500 });
+    return NextResponse.json(
+      { error: interpretAiError(err) },
+      { status: err instanceof RequestError ? err.status : 500 }
+    );
   }
 }

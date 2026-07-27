@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { vetWatch, aiEnabled, interpretAiError } from "@/lib/ai";
 import { saveUploadedImage } from "@/lib/upload";
-import { getCached, setCached, hashInputs } from "@/lib/aiCache";
+import { cacheKey, getCached, setCached, hashInputs } from "@/lib/aiCache";
+import { enforceAiRequest, enforceContentLength } from "@/lib/security";
+import { RequestError } from "@/lib/security";
 import { VetResult } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -9,6 +11,8 @@ export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
   try {
+    await enforceAiRequest(req);
+    enforceContentLength(req, 11 * 1024 * 1024);
     const form = await req.formData();
     const file = form.get("image");
     const listingText = String(form.get("listingText") ?? "");
@@ -31,19 +35,22 @@ export async function POST(req: NextRequest) {
     }
 
     // Same photo + same listing text ⇒ same vetting result, served free.
-    const cacheKey = `vet:${hashInputs(imageHash, listingText.trim())}`;
-    const cached = await getCached<VetResult>(cacheKey);
+    const key = cacheKey("vet", hashInputs(imageHash, listingText.trim()));
+    const cached = await getCached<VetResult>(key);
     if (cached) {
       return NextResponse.json({ result: cached, imageUrl, demoMode: false, cached: true });
     }
 
     const result = await vetWatch(imagePayload, listingText);
     const enabled = await aiEnabled();
-    if (enabled) await setCached(cacheKey, "vet", result);
+    if (enabled) await setCached(key, "vet", result);
 
     return NextResponse.json({ result, imageUrl, demoMode: !enabled, cached: false });
   } catch (err) {
     console.error("vet error", err);
-    return NextResponse.json({ error: interpretAiError(err) }, { status: 500 });
+    return NextResponse.json(
+      { error: interpretAiError(err) },
+      { status: err instanceof RequestError ? err.status : 500 }
+    );
   }
 }

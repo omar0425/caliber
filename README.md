@@ -4,8 +4,8 @@ Snap a photo of any watch and Caliber identifies it, pulls the full specs and ma
 value, and helps you catalog your collection. Thinking of buying? Vet a listing for
 fakes, "franken" parts, and prices that are too good to be true — before you pay.
 
-Built with Next.js 16, React 19, Prisma + SQLite, and the Anthropic Claude API (vision
-+ live web-search grounding).
+Built with Next.js 16, React 19, Prisma + SQLite, and the OpenAI Responses API
+(vision plus live web-search grounding).
 
 ## Features
 
@@ -31,14 +31,15 @@ npm run dev               # http://localhost:3000
 The app runs in **demo mode** with mock results until you add a key. The easiest way:
 
 1. Start the app and open the **Settings** page (in the top nav).
-2. Paste your Anthropic API key (get one at
-   https://console.anthropic.com/settings/keys) and click **Save & go live**.
+2. Paste your OpenAI API key (get one at
+   https://platform.openai.com/api-keys) and click **Save & go live**.
 
 That's it — recognition and vetting immediately switch to real AI. The key is stored in
 your local database and shown masked; remove it anytime to return to demo mode.
 
-Prefer environment config? You can instead set `ANTHROPIC_API_KEY` in `.env` and restart.
-A key saved in Settings takes precedence over the environment variable.
+Prefer environment config? Set `OPENAI_API_KEY` in `.env` and restart. This is safer
+than storing the key in SQLite.
+The environment variable takes precedence over a key saved in Settings.
 
 ## Deploying to Railway
 
@@ -53,7 +54,10 @@ files must live on a **persistent volume**. Setup (one time):
    DATABASE_URL = file:/data/caliber.db
    UPLOAD_DIR   = /data/uploads
    BACKUP_DIR   = /data/backups          # automatic DB backups (see below)
-   ANTHROPIC_API_KEY = sk-ant-...        # optional; can also be set in-app
+   OPENAI_API_KEY = sk-...              # optional; can also be set in-app
+   OPENAI_MODEL = gpt-5.6-luna          # cost-efficient vision default
+   CALIBER_AUTH_USER = caliber          # production login
+   CALIBER_AUTH_SECRET = use-a-long-random-password
    ```
 4. **Deploy.** On boot, `npm start` runs `prisma db push` (creating the SQLite
    schema on the volume) and then starts Next.js. Railway provides `PORT`
@@ -100,17 +104,30 @@ Rules that keep the data safe when changing code:
 
 ## How it works
 
-- `lib/ai.ts` — the recognition + vetting engine. Calls Claude with the photo, enables
+- `lib/ai.ts` — the recognition + vetting engine. Calls OpenAI with the photo, enables
   the web-search tool to confirm reference numbers and market value, and returns
   validated structured data. Falls back to mock data when no key is set.
 - `lib/prisma.ts` / `prisma/schema.prisma` — the `Watch` + `Valuation` data model.
 - `app/api/*` — route handlers for identify, vet, and watch CRUD.
 - `app/*` — the dashboard, identify, collection, watch-detail, and vet pages.
 
+## Security and operations
+
+- Production refuses to start serving private pages without `CALIBER_AUTH_SECRET`.
+- Photos and documents require the deployment login and use private, no-store responses.
+- Images are limited to 10 MB and documents to 20 MB by default. File signatures and
+  image decodability are verified before storage.
+- The monthly AI budget is a hard server-side cap. Requests are also rate-limited.
+- Run `npm run check` before deployment. GitHub Actions runs lint, type-check, tests,
+  build, dependency audit, and CodeQL automatically.
+- For multiple replicas, move rate limiting to Redis, uploads to private S3/R2 with
+  signed URLs, and SQLite to PostgreSQL. The current adapters remain intentionally
+  local and single-instance so Caliber does not require extra paid services.
+
 ## Tech notes
 
-- Uploaded images are saved to `public/uploads` and referenced by URL.
-- Single-user by design for now. The data model and API are structured so a `userId`
-  and auth layer can drop in later to make it multi-user.
+- Uploaded files are saved in `UPLOAD_DIR` and served through an authenticated route.
+- The deployment is protected by HTTP Basic authentication and designed for one trusted
+  user or household. Add per-user database ownership before turning it into a public SaaS.
 - Value estimates are guidance, not appraisals. Always verify high-value pieces with
   papers, service history, and an in-person inspection.

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { deleteStoredFile } from "@/lib/upload";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
       const next = await prisma.photo.findFirst({ where: { watchId: photo.watchId }, orderBy: { createdAt: "asc" } });
       await prisma.watch.update({ where: { id: photo.watchId }, data: { imageUrl: next?.url ?? null } });
     }
+    await deleteStoredFile(photo.url);
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Failed to delete photo." }, { status: 500 });

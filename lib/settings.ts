@@ -1,15 +1,16 @@
 import { prisma } from "./prisma";
 
-const API_KEY_SETTING = "anthropic_api_key";
+const API_KEY_SETTING = "openai_api_key";
 
-// Resolve the Anthropic API key: a key saved in the app (Settings page) wins,
-// otherwise fall back to the ANTHROPIC_API_KEY environment variable.
+// Environment secrets are preferred in production. The database option exists
+// for the small, self-hosted single-user deployment.
 export async function getApiKey(): Promise<string | null> {
+  const env = process.env.OPENAI_API_KEY?.trim();
+  if (env) return env;
   const row = await prisma.setting.findUnique({ where: { key: API_KEY_SETTING } });
   const stored = row?.value?.trim();
   if (stored) return stored;
-  const env = process.env.ANTHROPIC_API_KEY?.trim();
-  return env || null;
+  return null;
 }
 
 export async function setApiKey(key: string): Promise<void> {
@@ -27,9 +28,9 @@ export async function clearApiKey(): Promise<void> {
 
 // Whether the key came from the app database vs. the environment.
 export async function getKeySource(): Promise<"app" | "env" | "none"> {
+  if (process.env.OPENAI_API_KEY?.trim()) return "env";
   const row = await prisma.setting.findUnique({ where: { key: API_KEY_SETTING } });
   if (row?.value?.trim()) return "app";
-  if (process.env.ANTHROPIC_API_KEY?.trim()) return "env";
   return "none";
 }
 

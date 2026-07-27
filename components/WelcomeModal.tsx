@@ -18,12 +18,15 @@ export default function WelcomeModal() {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    setMounted(true);
-    try {
-      if (!localStorage.getItem(KEY)) setOpen(true);
-    } catch {
-      /* ignore */
-    }
+    const timer = window.setTimeout(() => {
+      setMounted(true);
+      try {
+        if (!localStorage.getItem(KEY)) setOpen(true);
+      } catch {
+        /* ignore */
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   function finish() {

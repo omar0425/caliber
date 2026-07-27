@@ -18,7 +18,7 @@ const INT_FIELDS = ["waterResistM", "powerReserveH", "confidence"] as const;
 
 type WatchData = Record<string, string | number | Date | null>;
 
-function num(v: unknown): number | null {
+export function num(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
@@ -44,7 +44,8 @@ export function normalizeWatchInput(body: Record<string, unknown>, { partial = f
   }
   if ("purchaseDate" in body) {
     const v = body["purchaseDate"];
-    data["purchaseDate"] = v ? new Date(String(v)) : null;
+    const date = v ? new Date(String(v)) : null;
+    data["purchaseDate"] = date && !Number.isNaN(date.getTime()) ? date : null;
   }
   // notableFacts arrives as a string[] from the AI — store as JSON.
   if ("notableFacts" in body) {

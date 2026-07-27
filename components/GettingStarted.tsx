@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 
-const DISMISS_KEY = "caliber_gs_dismissed";
-
 type Item = { done: boolean; title: string; desc: string; href: string; cta: string };
 
 export default function GettingStarted({

@@ -19,10 +19,13 @@ export default function SpendWarning() {
   }, []);
 
   useEffect(() => {
-    load();
+    const timer = window.setTimeout(() => void load(), 0);
     const onFocus = () => load();
     window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [load]);
 
   if (dismissed || !usage || (usage.level !== "low" && usage.level !== "over")) return null;
@@ -42,15 +45,15 @@ export default function SpendWarning() {
         <p className="flex-1" style={{ color }}>
           {over ? (
             <>
-              You&apos;ve reached your {budget} monthly AI budget ({spent} used). New analyses still work, but
-              consider raising the budget or watching your{" "}
+              You&apos;ve reached your {budget} monthly AI budget ({spent} used). New analyses are blocked.
+              Raise the budget or review your{" "}
               <a
-                href="https://console.anthropic.com/settings/usage"
+                href="https://platform.openai.com/usage"
                 target="_blank"
                 rel="noreferrer"
                 className="underline font-medium"
               >
-                Anthropic credit balance
+                OpenAI usage
               </a>
               .
             </>
