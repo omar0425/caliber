@@ -114,6 +114,7 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
     productionStatus: watch.productionStatus,
     limitedEdition: watch.limitedEdition,
     scarcity: watch.scarcity,
+    sources: [],
   };
 
   async function save() {

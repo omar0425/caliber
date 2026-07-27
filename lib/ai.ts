@@ -1,29 +1,31 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
+import { zodTextFormat } from "openai/helpers/zod";
+import type { Response } from "openai/resources/responses/responses";
 import { WatchSpec, WatchSpecSchema, VetResult, VetResultSchema } from "./types";
 import { getApiKey } from "./settings";
 import { recordUsage } from "./usage";
 
-const MODEL = "claude-opus-4-8";
+const MODEL = process.env.OPENAI_MODEL || "gpt-5.6-luna";
 
 // Turn a raw SDK/API error into a clear, actionable message for the UI.
 export function interpretAiError(err: unknown): string {
-  if (err instanceof Anthropic.APIError) {
+  if (err instanceof OpenAI.APIError) {
     const msg = (err.message || "").toLowerCase();
     if (msg.includes("credit balance") || msg.includes("billing")) {
-      return "Your Anthropic credit balance is too low. Add credits at console.anthropic.com → Plans & Billing, then try again.";
+      return "Your OpenAI API credit balance is too low. Check platform.openai.com/settings/organization/billing, then try again.";
     }
     if (err.status === 401) return "Your API key was rejected. Re-enter it on the Settings page.";
-    if (err.status === 429) return "Anthropic is rate-limiting requests — wait a moment and try again.";
-    if (err.status === 529) return "Anthropic is temporarily overloaded — please try again shortly.";
+    if (err.status === 429) return "OpenAI is rate-limiting requests — wait a moment and try again.";
+    if (err.status && err.status >= 500) return "OpenAI is temporarily unavailable — please try again shortly.";
   }
   return err instanceof Error ? err.message : "Something went wrong.";
 }
 
 // Build a client from the currently-configured key (Settings page or env).
 // Returns null when no key is set — callers fall back to demo mode.
-async function getClient(): Promise<Anthropic | null> {
+async function getClient(): Promise<OpenAI | null> {
   const apiKey = await getApiKey();
-  return apiKey ? new Anthropic({ apiKey }) : null;
+  return apiKey ? new OpenAI({ apiKey }) : null;
 }
 
 // Whether real AI is available right now (a key is configured).
@@ -31,41 +33,21 @@ export async function aiEnabled(): Promise<boolean> {
   return (await getApiKey()) !== null;
 }
 
-// Anthropic server-side web search tool — grounds specs & values in real sources.
-const webSearchTool: Anthropic.WebSearchTool20250305 = {
-  type: "web_search_20250305",
-  name: "web_search",
-  max_uses: 6,
-};
+const webSearchTool = { type: "web_search" as const };
 
 type ImageInput = { base64: string; mediaType: string };
 
-function imageBlock(image: ImageInput): Anthropic.ImageBlockParam {
+function imageBlock(image: ImageInput) {
   return {
-    type: "image",
-    source: {
-      type: "base64",
-      media_type: image.mediaType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
-      data: image.base64,
-    },
+    type: "input_image" as const,
+    image_url: `data:${image.mediaType};base64,${image.base64}`,
+    detail: "high" as const,
   };
 }
 
-// Pull the last JSON object out of the model's text, tolerating fences/tags.
-function extractJson<T>(text: string): T {
-  const between = text.match(/<result>([\s\S]*?)<\/result>/i);
-  const raw = between ? between[1] : text;
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start === -1 || end === -1) throw new Error("No JSON found in model response");
-  return JSON.parse(raw.slice(start, end + 1)) as T;
-}
-
-function joinText(message: Anthropic.Message): string {
-  return message.content
-    .filter((b): b is Anthropic.TextBlock => b.type === "text")
-    .map((b) => b.text)
-    .join("\n");
+function parsed<T>(response: Response & { output_parsed?: T | null }): T {
+  if (!response.output_parsed) throw new Error("OpenAI returned no structured result.");
+  return response.output_parsed;
 }
 
 // ---- Recognition -----------------------------------------------------------
@@ -74,6 +56,7 @@ const IDENTIFY_SYSTEM = `You are Caliber, an expert horologist and watch authent
 You analyze photographs of wristwatches and produce precise, trustworthy spec sheets.
 
 Rules:
+- Use no more than 4 web searches. Prefer manufacturer pages and established market sources.
 - Use the web_search tool to CONFIRM the reference number, movement caliber, and current
   secondary-market value. Never invent a reference number or caliber — if you cannot confirm
   it, set the field to null and lower your confidence.
@@ -87,7 +70,7 @@ Rules:
   the secondary market today.
 - Prefer being honest about uncertainty over sounding authoritative.
 
-After researching, respond with ONLY a JSON object wrapped in <result></result> tags matching:
+Return a structured result matching:
 {
   "brand": string, "model": string, "referenceNumber": string|null, "nickname": string|null,
   "movement": string|null, "caliber": string|null, "caseMaterial": string|null,
@@ -106,18 +89,19 @@ export async function identifyWatch(image: ImageInput): Promise<WatchSpec> {
   const client = await getClient();
   if (!client) return mockIdentify();
 
-  const message = await client.messages.create({
+  const response = await client.responses.parse({
     model: MODEL,
-    max_tokens: 2000,
-    system: IDENTIFY_SYSTEM,
+    max_output_tokens: 3000,
+    instructions: IDENTIFY_SYSTEM,
     tools: [webSearchTool],
-    messages: [
+    text: { format: zodTextFormat(WatchSpecSchema, "watch_spec") },
+    input: [
       {
         role: "user",
         content: [
           imageBlock(image),
           {
-            type: "text",
+            type: "input_text",
             text: "Identify this watch and produce its full spec sheet. Research to confirm the reference and value.",
           },
         ],
@@ -125,9 +109,8 @@ export async function identifyWatch(image: ImageInput): Promise<WatchSpec> {
     ],
   });
 
-  await recordUsage("identify", MODEL, message);
-  const spec = extractJson<unknown>(joinText(message));
-  return WatchSpecSchema.parse(spec);
+  await recordUsage("identify", MODEL, response);
+  return WatchSpecSchema.parse(parsed(response));
 }
 
 // ---- Vetting / authentication ---------------------------------------------
@@ -137,6 +120,7 @@ watch (often from an online listing) and wants to avoid fakes, "franken" watches
 genuine + aftermarket parts), redials, and bad deals.
 
 Analyze the photo (and any listing text provided) for authenticity signals:
+- Use no more than 4 web searches. Prefer manufacturer pages and established market sources.
 - Dial text font/spacing/printing, logo shape, date wheel font & alignment
 - Crown, bezel, handset, lume plots consistency with the claimed reference
 - Case finishing, engravings, serial/reference plausibility
@@ -145,7 +129,7 @@ Analyze the photo (and any listing text provided) for authenticity signals:
 Be measured. Photos alone cannot certify authenticity — say so. Flag concerns by severity:
 red = strong warning, yellow = verify further, green = looks consistent.
 
-After researching, respond with ONLY a JSON object wrapped in <result></result> tags matching:
+Return a structured result matching:
 {
   "brand": string|null, "model": string|null, "referenceNumber": string|null,
   "verdict": "likely-authentic"|"caution"|"likely-problematic"|"inconclusive",
@@ -162,26 +146,26 @@ export async function vetWatch(
   const client = await getClient();
   if (!client) return mockVet();
 
-  const content: Anthropic.ContentBlockParam[] = [];
+  const content: Array<ReturnType<typeof imageBlock> | { type: "input_text"; text: string }> = [];
   if (image) content.push(imageBlock(image));
   content.push({
-    type: "text",
+    type: "input_text",
     text:
       `Assess this watch for authenticity and value.\n\nListing details from the seller:\n` +
       (listingText?.trim() || "(none provided)"),
   });
 
-  const message = await client.messages.create({
+  const response = await client.responses.parse({
     model: MODEL,
-    max_tokens: 2500,
-    system: VET_SYSTEM,
+    max_output_tokens: 3500,
+    instructions: VET_SYSTEM,
     tools: [webSearchTool],
-    messages: [{ role: "user", content }],
+    text: { format: zodTextFormat(VetResultSchema, "vet_result") },
+    input: [{ role: "user", content }],
   });
 
-  await recordUsage("vet", MODEL, message);
-  const result = extractJson<unknown>(joinText(message));
-  return VetResultSchema.parse(result);
+  await recordUsage("vet", MODEL, response);
+  return VetResultSchema.parse(parsed(response));
 }
 
 // ---- Per-watch chat --------------------------------------------------------
@@ -205,19 +189,19 @@ critical details (papers, serials, condition) independently. Keep replies to a f
 export async function chatAboutWatch(context: string, messages: ChatMessage[]): Promise<string> {
   const client = await getClient();
   if (!client) {
-    return "Chat runs on Claude — add your Anthropic API key on the Settings page to talk through this watch's scarcity, limited editions, and market. (Demo mode.)";
+    return "Chat runs on OpenAI — add your OpenAI API key on the Settings page to talk through this watch's scarcity, limited editions, and market. (Demo mode.)";
   }
 
-  const message = await client.messages.create({
+  const response = await client.responses.create({
     model: MODEL,
-    max_tokens: 1200,
-    system: CHAT_SYSTEM(context),
+    max_output_tokens: 1400,
+    instructions: CHAT_SYSTEM(context),
     tools: [webSearchTool],
-    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    input: messages.map((m) => ({ role: m.role, content: m.content })),
   });
 
-  await recordUsage("chat", MODEL, message);
-  const text = joinText(message).trim();
+  await recordUsage("chat", MODEL, response);
+  const text = response.output_text.trim();
   return text || "I couldn't find a good answer to that — try rephrasing?";
 }
 
@@ -254,7 +238,7 @@ function mockIdentify(): WatchSpec {
     estValueHigh: 7000,
     confidence: 92,
     summary:
-      "DEMO MODE: The Omega Speedmaster Professional 'Moonwatch' is the manual-wind chronograph worn on the Apollo missions. Add your Anthropic API key on the Settings page to analyze your real photos.",
+      "DEMO MODE: The Omega Speedmaster Professional 'Moonwatch' is the manual-wind chronograph worn on the Apollo missions. Add your OpenAI API key on the Settings page to analyze your real photos.",
     history:
       "DEMO MODE: Introduced in 1957 as a motorsport chronograph, the Speedmaster was flight-qualified by NASA in 1965 and worn on the Moon during Apollo 11 in 1969, earning the 'Moonwatch' name. It has remained in near-continuous production since, evolving through calibres 321, 861, 1861 and today's Master Chronometer 3861 while keeping its asymmetric case, tachymeter bezel, and hesalite crystal.",
     notableFacts: [
@@ -281,7 +265,7 @@ function mockVet(): VetResult {
     ],
     estValueLow: 11000,
     estValueHigh: 14000,
-    fairPriceNote: "DEMO MODE: Add ANTHROPIC_API_KEY to .env for real vetting.",
+    fairPriceNote: "DEMO MODE: Add OPENAI_API_KEY to .env for real vetting.",
     summary:
       "DEMO MODE placeholder result. Photos alone can't certify authenticity — always confirm with papers, service history, and an in-person inspection for high-value pieces.",
     sources: [],

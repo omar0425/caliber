@@ -6,18 +6,25 @@
     "node": ">=20"
   },
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "node scripts/check-db-path.mjs && node scripts/auto-restore.mjs && node scripts/backup.mjs && next dev",
     "build": "prisma generate && next build",
     "start": "node scripts/check-db-path.mjs && node scripts/auto-restore.mjs && node scripts/backup.mjs && prisma db push --skip-generate && next start",
     "db:push": "node scripts/check-db-path.mjs && node scripts/auto-restore.mjs && node scripts/backup.mjs && prisma db push",
     "backup": "node scripts/backup.mjs",
     "restore": "node scripts/restore.mjs",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.110.0",
+    "@emnapi/core": "^1.11.3",
+    "@emnapi/runtime": "^1.11.3",
     "@prisma/client": "^6.19.3",
-    "next": "16.2.10",
+    "next": "^16.2.12",
+    "openai": "^6.49.0",
     "prisma": "^6.19.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -29,9 +36,15 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "^16.2.12",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "postcss": "8.5.18",
+    "sharp": "$sharp"
   }
 }

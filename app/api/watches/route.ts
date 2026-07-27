@@ -35,26 +35,27 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as Record<string, unknown>;
     const data = normalizeWatchInput(body);
 
-    const watch = await prisma.watch.create({ data: data as unknown as Prisma.WatchCreateInput });
-
-    // Seed a valuation record if the AI provided a range.
-    if (typeof data.estValueLow === "number" && typeof data.estValueHigh === "number") {
-      await prisma.valuation.create({
-        data: {
-          watchId: watch.id,
-          low: data.estValueLow,
-          high: data.estValueHigh,
-          source: "AI estimate",
-        },
+    const watch = await prisma.$transaction(async (tx) => {
+      const created = await tx.watch.create({
+        data: data as unknown as Prisma.WatchCreateInput,
       });
-    }
-
-    // Seed the cover photo into the gallery so it isn't empty.
-    if (typeof data.imageUrl === "string" && data.imageUrl) {
-      await prisma.photo.create({
-        data: { watchId: watch.id, url: data.imageUrl, caption: "Cover" },
-      });
-    }
+      if (typeof data.estValueLow === "number" && typeof data.estValueHigh === "number") {
+        await tx.valuation.create({
+          data: {
+            watchId: created.id,
+            low: data.estValueLow,
+            high: data.estValueHigh,
+            source: "AI estimate",
+          },
+        });
+      }
+      if (typeof data.imageUrl === "string" && data.imageUrl) {
+        await tx.photo.create({
+          data: { watchId: created.id, url: data.imageUrl, caption: "Cover" },
+        });
+      }
+      return created;
+    });
 
     return NextResponse.json({ watch }, { status: 201 });
   } catch (err) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { normalizeWatchInput } from "@/lib/watchData";
 import { Prisma } from "@prisma/client";
+import { deleteStoredFile } from "@/lib/upload";
 
 export const runtime = "nodejs";
 
@@ -41,7 +42,16 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
   try {
     const { id } = await params;
+    const watch = await prisma.watch.findUnique({
+      where: { id },
+      include: { photos: true, documents: true },
+    });
+    if (!watch) return NextResponse.json({ error: "Not found" }, { status: 404 });
     await prisma.watch.delete({ where: { id } });
+    await Promise.all([
+      ...watch.photos.map((photo) => deleteStoredFile(photo.url)),
+      ...watch.documents.map((document) => deleteStoredFile(document.url)),
+    ]);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("delete watch error", err);

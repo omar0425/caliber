@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/upload";
+import { enforceContentLength, RequestError } from "@/lib/security";
 
 export const runtime = "nodejs";
 
 // POST /api/watches/[id]/photos — add one or more photos to a watch
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    enforceContentLength(req, 51 * 1024 * 1024);
     const { id } = await params;
     const watch = await prisma.watch.findUnique({ where: { id }, select: { id: true, imageUrl: true } });
     if (!watch) return NextResponse.json({ error: "Watch not found" }, { status: 404 });
@@ -33,6 +35,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ photos: created }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to add photos.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: err instanceof RequestError ? err.status : 500 });
   }
 }

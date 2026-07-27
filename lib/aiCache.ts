@@ -1,10 +1,22 @@
 import crypto from "crypto";
 import { prisma } from "./prisma";
 
+export const AI_CACHE_VERSION = "openai-gpt56-v1";
+
+export function cacheKey(kind: "identify" | "vet", inputHash: string): string {
+  return `${kind}:${AI_CACHE_VERSION}:${inputHash}`;
+}
+
 // Stable hash of one or more inputs (image bytes, listing text) used as a cache key.
 export function hashInputs(...parts: (string | Buffer)[]): string {
   const h = crypto.createHash("sha256");
-  for (const p of parts) h.update(p);
+  for (const p of parts) {
+    const value = Buffer.isBuffer(p) ? p : Buffer.from(p);
+    const length = Buffer.allocUnsafe(8);
+    length.writeBigUInt64BE(BigInt(value.length));
+    h.update(length);
+    h.update(value);
+  }
   return h.digest("hex");
 }
 

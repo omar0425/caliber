@@ -113,9 +113,12 @@ export default function SettingsPage() {
     setStatus(await res.json());
   }
   useEffect(() => {
-    load();
-    loadUsage();
-    loadOwnership();
+    const timer = window.setTimeout(() => {
+      void load();
+      void loadUsage();
+      void loadOwnership();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   async function save() {
@@ -153,7 +156,7 @@ export default function SettingsPage() {
     <div className="max-w-2xl space-y-6">
       <div>
         <h1 className="font-serif text-3xl">Settings</h1>
-        <p className="text-muted mt-1">Connect your Anthropic API key to turn on real AI analysis.</p>
+        <p className="text-muted mt-1">Connect your OpenAI API key to turn on real AI analysis.</p>
       </div>
       <div className="rule" />
 
@@ -169,7 +172,7 @@ export default function SettingsPage() {
           </p>
           <p className="text-sm text-muted">
             {status?.source === "app" && `Key configured in-app (${status.masked}).`}
-            {status?.source === "env" && "Key loaded from the ANTHROPIC_API_KEY environment variable."}
+            {status?.source === "env" && "Key loaded from the OPENAI_API_KEY environment variable."}
             {status?.source === "none" && "No API key set. Add one below to analyze real photos."}
           </p>
         </div>
@@ -178,26 +181,27 @@ export default function SettingsPage() {
       {/* Key form */}
       <div className="card p-6 space-y-4">
         <div>
-          <label className="label">Anthropic API key</label>
+          <label className="label">OpenAI API key</label>
           <input
             type="password"
             value={key}
             onChange={(e) => setKey(e.target.value)}
-            placeholder="sk-ant-..."
+            placeholder="sk-..."
             className="input mt-1 font-mono"
             autoComplete="off"
           />
           <p className="text-xs text-muted mt-2">
             Get a key from{" "}
             <a
-              href="https://console.anthropic.com/settings/keys"
+              href="https://platform.openai.com/api-keys"
               target="_blank"
               rel="noreferrer"
               className="text-accent hover:underline"
             >
-              console.anthropic.com
+              platform.openai.com
             </a>
-            . It&apos;s stored locally in your Caliber database and only sent to Anthropic when you analyze a watch.
+            . Prefer the OPENAI_API_KEY deployment secret. A key saved here is stored in Caliber&apos;s database
+            and sent only to OpenAI for analysis.
           </p>
         </div>
 
@@ -225,7 +229,7 @@ export default function SettingsPage() {
         <ul className="text-sm text-muted space-y-2 list-disc pl-5">
           <li>Powers watch recognition, spec research, and the authenticity vetting engine.</li>
           <li>Stored only on this machine (in your local database), never shared.</li>
-          <li>You&apos;re billed by Anthropic per analysis — typically a few cents per watch.</li>
+          <li>You&apos;re billed by OpenAI per analysis; Caliber uses the cost-efficient Luna model by default.</li>
           <li>Remove it anytime to drop back to free demo mode.</li>
         </ul>
       </div>
@@ -236,10 +240,10 @@ export default function SettingsPage() {
           <h3 className="font-serif text-lg">AI usage &amp; budget</h3>
           <p className="text-sm text-muted mt-1">
             Estimated spend from your analyses. Set a monthly budget to get a warning banner as you
-            approach it. (Anthropic doesn&apos;t expose your exact credit balance, so this is an
-            estimate — check your real balance on{" "}
-            <a href="https://console.anthropic.com/settings/usage" target="_blank" rel="noreferrer" className="text-accent hover:underline">
-              console.anthropic.com
+            approach it. Caliber blocks new AI calls when the budget is reached. This remains an
+            estimate—check actual usage on{" "}
+            <a href="https://platform.openai.com/usage" target="_blank" rel="noreferrer" className="text-accent hover:underline">
+              platform.openai.com
             </a>
             .)
           </p>
@@ -279,8 +283,8 @@ export default function SettingsPage() {
           </div>
           {budgetMsg && <p className="text-sm text-muted mt-2">{budgetMsg}</p>}
           <p className="text-xs text-muted mt-2">
-            You&apos;ll see an amber banner at 80% and a red one at 100%. Analyses keep working past the
-            budget — it&apos;s a heads-up, not a hard stop.
+            You&apos;ll see an amber banner at 80%. At 100%, new AI analyses are blocked until the
+            budget is raised or the month changes.
           </p>
         </div>
       </div>
@@ -290,9 +294,8 @@ export default function SettingsPage() {
         <div>
           <h3 className="font-serif text-lg">Ownership</h3>
           <p className="text-sm text-muted mt-1">
-            There&apos;s no login yet, so more than one person may be using this collection. Record
-            who the watches belong to now, so they can be moved to that person&apos;s own account
-            when logins are added. Each watch also has its own Owner field on its detail page.
+            Access is protected by the deployment login. The Owner field lets you distinguish
+            watches when a household shares one Caliber deployment.
           </p>
         </div>
 

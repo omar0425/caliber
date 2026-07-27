@@ -26,7 +26,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ nam
     return new NextResponse(new Uint8Array(data), {
       headers: {
         "Content-Type": CONTENT_TYPE[ext] ?? "application/octet-stream",
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch {
