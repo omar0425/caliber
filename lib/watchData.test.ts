@@ -18,4 +18,13 @@ describe("watch input normalization", () => {
   it("does not persist invalid dates", () => {
     expect(normalizeWatchInput({ purchaseDate: "bad-date" }).purchaseDate).toBeNull();
   });
+
+  it("protects required fields and constrained collection metadata", () => {
+    expect(
+      normalizeWatchInput(
+        { brand: null, model: "", status: "admin", purchasePrice: -10, confidence: 101 },
+        { partial: true }
+      )
+    ).toEqual({ purchasePrice: null, confidence: 100 });
+  });
 });

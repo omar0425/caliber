@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { chatAboutWatch, interpretAiError, ChatMessage } from "@/lib/ai";
-import { enforceAiRequest, RequestError } from "@/lib/security";
+import { aiEnabled, chatAboutWatch, interpretAiError } from "@/lib/ai";
+import {
+  enforceAiBudget,
+  enforceAiRateLimit,
+  enforceContentLength,
+  enforceContentType,
+  RequestError,
+} from "@/lib/security";
+import { parseChatMessages } from "@/lib/aiInput";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -25,32 +32,36 @@ function buildContext(w: Record<string, unknown>): string {
   ];
   return lines
     .filter(([, v]) => v !== null && v !== undefined && v !== "")
-    .map(([k, v]) => `- ${k}: ${v}`)
+    .map(([k, v]) => {
+      const safeValue = String(v)
+        .slice(0, 2_000)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+      return `- ${k}: ${safeValue}`;
+    })
     .join("\n");
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await enforceAiRequest(req);
+    enforceContentLength(req, 64 * 1024);
+    enforceContentType(req, "application/json");
+    const body = (await req.json()) as { messages?: unknown };
+    const messages = parseChatMessages(body.messages);
+
     const { id } = await params;
     const watch = await prisma.watch.findUnique({ where: { id } });
     if (!watch) return NextResponse.json({ error: "Watch not found" }, { status: 404 });
 
-    const body = (await req.json()) as { messages?: ChatMessage[] };
-    const messages = (body.messages ?? [])
-      .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
-      .map((m) => ({ ...m, content: m.content.slice(0, 4_000) }))
-      .slice(-12); // keep the last several turns
-    if (messages.length === 0) {
-      return NextResponse.json({ error: "No message provided." }, { status: 400 });
-    }
-
+    enforceAiRateLimit(req);
+    if (await aiEnabled()) await enforceAiBudget();
     const reply = await chatAboutWatch(buildContext(watch as Record<string, unknown>), messages);
-    return NextResponse.json({ reply });
+    return NextResponse.json({ reply: reply.content, sources: reply.sources });
   } catch (err) {
     console.error("chat error", err);
     return NextResponse.json(
-      { error: interpretAiError(err) },
+      { error: err instanceof RequestError ? err.message : interpretAiError(err) },
       { status: err instanceof RequestError ? err.status : 500 }
     );
   }

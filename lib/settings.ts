@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { protectSecret, revealSecret, secretProtectionEnabled } from "./secretStorage";
 
 const API_KEY_SETTING = "openai_api_key";
 
@@ -9,12 +10,27 @@ export async function getApiKey(): Promise<string | null> {
   if (env) return env;
   const row = await prisma.setting.findUnique({ where: { key: API_KEY_SETTING } });
   const stored = row?.value?.trim();
-  if (stored) return stored;
+  if (stored) {
+    try {
+      const revealed = revealSecret(stored).trim();
+      if (revealed && revealed === stored && secretProtectionEnabled()) {
+        // Transparently upgrade legacy plaintext values after a deployment
+        // secret is configured.
+        await prisma.setting.update({
+          where: { key: API_KEY_SETTING },
+          data: { value: protectSecret(revealed) },
+        });
+      }
+      return revealed || null;
+    } catch (error) {
+      console.error("Unable to decrypt the saved OpenAI API key.", error);
+    }
+  }
   return null;
 }
 
 export async function setApiKey(key: string): Promise<void> {
-  const value = key.trim();
+  const value = protectSecret(key.trim());
   await prisma.setting.upsert({
     where: { key: API_KEY_SETTING },
     create: { key: API_KEY_SETTING, value },
@@ -29,9 +45,12 @@ export async function clearApiKey(): Promise<void> {
 // Whether the key came from the app database vs. the environment.
 export async function getKeySource(): Promise<"app" | "env" | "none"> {
   if (process.env.OPENAI_API_KEY?.trim()) return "env";
-  const row = await prisma.setting.findUnique({ where: { key: API_KEY_SETTING } });
-  if (row?.value?.trim()) return "app";
+  if (await getApiKey()) return "app";
   return "none";
+}
+
+export function isStoredKeyEncrypted(): boolean {
+  return secretProtectionEnabled();
 }
 
 const BUDGET_SETTING = "monthly_budget_usd";

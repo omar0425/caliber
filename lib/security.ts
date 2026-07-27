@@ -19,11 +19,18 @@ export function enforceContentLength(req: NextRequest, maximumBytes: number): vo
   }
 }
 
+export function enforceContentType(req: NextRequest, expected: string): void {
+  const contentType = req.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
+  if (contentType !== expected.toLowerCase()) {
+    throw new RequestError(`Content-Type must be ${expected}.`, 415);
+  }
+}
+
 function clientId(req: NextRequest): string {
   return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
 }
 
-export async function enforceAiRequest(req: NextRequest): Promise<void> {
+export function enforceAiRateLimit(req: NextRequest): void {
   const now = Date.now();
   if (hits.size > 5_000) {
     for (const [key, value] of hits) if (value.resetAt <= now) hits.delete(key);
@@ -38,9 +45,18 @@ export async function enforceAiRequest(req: NextRequest): Promise<void> {
       throw new RequestError("Too many AI requests. Try again in a minute.", 429);
     }
   }
+}
 
+export async function enforceAiBudget(): Promise<void> {
   const [budget, usage] = await Promise.all([getBudget(), getUsageSummary()]);
   if (budget && usage.monthSpend >= budget) {
     throw new RequestError("The monthly AI budget has been reached.", 402);
   }
+}
+
+// Backward-compatible combined guard for callers that cannot check a free
+// cache before deciding whether a paid OpenAI request is needed.
+export async function enforceAiRequest(req: NextRequest): Promise<void> {
+  enforceAiRateLimit(req);
+  await enforceAiBudget();
 }

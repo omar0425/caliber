@@ -17,6 +17,8 @@ const FLOAT_FIELDS = [
 const INT_FIELDS = ["waterResistM", "powerReserveH", "confidence"] as const;
 
 type WatchData = Record<string, string | number | Date | null>;
+const ALLOWED_STATUSES = new Set(["owned", "wishlist", "watching"]);
+const LONG_TEXT_FIELDS = new Set(["notes", "summary", "history", "scarcity", "specJson"]);
 
 export function num(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
@@ -30,16 +32,38 @@ export function normalizeWatchInput(body: Record<string, unknown>, { partial = f
   for (const key of STRING_FIELDS) {
     if (key in body) {
       const v = body[key];
-      data[key] = v === null || v === undefined ? null : String(v);
+      if ((key === "brand" || key === "model") && (v === null || !String(v).trim())) {
+        continue;
+      }
+      if (key === "status") {
+        const status = String(v);
+        if (ALLOWED_STATUSES.has(status)) data[key] = status;
+        continue;
+      }
+      if (v === null || v === undefined) {
+        data[key] = null;
+        continue;
+      }
+      const maximum = LONG_TEXT_FIELDS.has(key) ? 20_000 : 500;
+      data[key] = String(v).slice(0, maximum);
     }
   }
   for (const key of FLOAT_FIELDS) {
-    if (key in body) data[key] = num(body[key]);
+    if (key in body) {
+      const n = num(body[key]);
+      data[key] = n !== null && n >= 0 ? n : null;
+    }
   }
   for (const key of INT_FIELDS) {
     if (key in body) {
       const n = num(body[key]);
-      data[key] = n === null ? null : Math.round(n);
+      const rounded = n === null ? null : Math.round(n);
+      data[key] =
+        rounded === null || rounded < 0
+          ? null
+          : key === "confidence"
+            ? Math.min(100, rounded)
+            : rounded;
     }
   }
   if ("purchaseDate" in body) {
@@ -50,9 +74,15 @@ export function normalizeWatchInput(body: Record<string, unknown>, { partial = f
   // notableFacts arrives as a string[] from the AI — store as JSON.
   if ("notableFacts" in body) {
     const v = body["notableFacts"];
-    if (Array.isArray(v)) data["notableFacts"] = JSON.stringify(v);
-    else if (typeof v === "string" && v.trim()) data["notableFacts"] = v;
-    else data["notableFacts"] = null;
+    if (Array.isArray(v)) {
+      data["notableFacts"] = JSON.stringify(
+        v.slice(0, 50).map((fact) => String(fact).slice(0, 500))
+      );
+    } else if (typeof v === "string" && v.trim()) {
+      data["notableFacts"] = v.slice(0, 20_000);
+    } else {
+      data["notableFacts"] = null;
+    }
   }
 
   // Required fields on create

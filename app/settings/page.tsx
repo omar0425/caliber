@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Status = { configured: boolean; source: "app" | "env" | "none"; masked: string | null };
+type Status = {
+  configured: boolean;
+  source: "app" | "env" | "none";
+  masked: string | null;
+  protectedAtRest: boolean;
+};
 type Usage = {
   monthSpend: number;
   monthCalls: number;
@@ -200,8 +205,8 @@ export default function SettingsPage() {
             >
               platform.openai.com
             </a>
-            . Prefer the OPENAI_API_KEY deployment secret. A key saved here is stored in Caliber&apos;s database
-            and sent only to OpenAI for analysis.
+            . Prefer the OPENAI_API_KEY deployment secret. A key saved here is encrypted at rest when
+            Caliber has a deployment encryption or login secret, and is sent only to OpenAI for analysis.
           </p>
         </div>
 
@@ -228,7 +233,11 @@ export default function SettingsPage() {
         <h3 className="font-serif text-lg mb-2">How your key is used</h3>
         <ul className="text-sm text-muted space-y-2 list-disc pl-5">
           <li>Powers watch recognition, spec research, and the authenticity vetting engine.</li>
-          <li>Stored only on this machine (in your local database), never shared.</li>
+          <li>
+            {status?.source === "app" && status.protectedAtRest
+              ? "The saved key is encrypted at rest using your deployment secret."
+              : "Deployment environment secrets are preferred for production."}
+          </li>
           <li>You&apos;re billed by OpenAI per analysis; Caliber uses the cost-efficient Luna model by default.</li>
           <li>Remove it anytime to drop back to free demo mode.</li>
         </ul>
@@ -245,7 +254,7 @@ export default function SettingsPage() {
             <a href="https://platform.openai.com/usage" target="_blank" rel="noreferrer" className="text-accent hover:underline">
               platform.openai.com
             </a>
-            .)
+            .
           </p>
         </div>
 

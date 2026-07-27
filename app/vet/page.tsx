@@ -161,6 +161,26 @@ export default function VetPage() {
                 ))}
               </div>
 
+              {result.sources.length > 0 && (
+                <div className="pt-2 border-t border-line/60">
+                  <p className="label mb-2">Sources</p>
+                  <ul className="space-y-1">
+                    {result.sources.slice(0, 6).map((source) => (
+                      <li key={source} className="text-xs truncate">
+                        <a
+                          href={source}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-accent hover:underline"
+                        >
+                          {source}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <p className="text-xs text-muted border-t border-line/60 pt-3">
                 This is AI-assisted analysis and can be wrong — photos alone can&apos;t certify
                 authenticity. For high-value pieces, always confirm papers, service history, and

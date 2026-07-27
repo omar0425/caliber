@@ -8,16 +8,18 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     const record = await prisma.serviceRecord.findUnique({ where: { id } });
     if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    await prisma.serviceRecord.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.serviceRecord.delete({ where: { id } });
 
-    // Recompute the watch's lastServicedDate from remaining records.
-    const latest = await prisma.serviceRecord.findFirst({
-      where: { watchId: record.watchId },
-      orderBy: { date: "desc" },
-    });
-    await prisma.watch.update({
-      where: { id: record.watchId },
-      data: { lastServicedDate: latest?.date ?? null },
+      // Recompute the watch's lastServicedDate from remaining records.
+      const latest = await tx.serviceRecord.findFirst({
+        where: { watchId: record.watchId },
+        orderBy: { date: "desc" },
+      });
+      await tx.watch.update({
+        where: { id: record.watchId },
+        data: { lastServicedDate: latest?.date ?? null },
+      });
     });
     return NextResponse.json({ ok: true });
   } catch {
