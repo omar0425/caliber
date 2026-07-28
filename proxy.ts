@@ -3,7 +3,6 @@ import {
   authenticationConfigured,
   sanitizeReturnTo,
   SESSION_COOKIE,
-  verifyBasicAuthorization,
   verifySessionToken,
 } from "./lib/auth";
 
@@ -22,15 +21,13 @@ export function proxy(req: NextRequest) {
     return new NextResponse("CALIBER_AUTH_SECRET is required.", { status: 503 });
   }
 
-  const authenticated =
-    verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value) ||
-    verifyBasicAuthorization(req.headers.get("authorization"));
+  const sessionAuthenticated = verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
 
-  if (req.nextUrl.pathname === "/login" && authenticated) {
+  if (req.nextUrl.pathname === "/login" && sessionAuthenticated) {
     return NextResponse.redirect(new URL("/", req.url));
   }
   if (PUBLIC_PATHS.has(req.nextUrl.pathname)) return NextResponse.next();
-  if (authenticated) return NextResponse.next();
+  if (sessionAuthenticated) return NextResponse.next();
 
   if (req.nextUrl.pathname.startsWith("/api/") || !["GET", "HEAD"].includes(req.method)) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });

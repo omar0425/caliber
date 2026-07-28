@@ -136,8 +136,10 @@ Rules that keep the data safe when changing code:
 
 - Uploaded files are saved in `UPLOAD_DIR` and served through an authenticated route.
 - The deployment uses a branded Caliber login backed by a signed, HTTP-only session cookie and is
-  designed for one trusted user or household. The same credentials still work with HTTP Basic
-  authentication for command-line and API clients, but browsers are not challenged with the
-  native Basic Auth popup. Add per-user database ownership before turning it into a public SaaS.
+  designed for one trusted user or household. `CALIBER_AUTH_SECRET` supplies the initial password;
+  an authenticated user can replace it from Settings. The replacement is stored as a salted
+  one-way hash. Legacy HTTP Basic credentials are deliberately ignored so a browser cannot replay
+  cached credentials after sign-out. Add per-user database ownership before turning Caliber into
+  a public SaaS.
 - Value estimates are guidance, not appraisals. Always verify high-value pieces with
   papers, service history, and an in-person inspection.

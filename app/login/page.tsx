@@ -19,7 +19,9 @@ export default async function LoginPage({
       ? "Too many unsuccessful attempts. Wait 15 minutes, then try again."
       : params.error === "invalid"
         ? "That username or password didn’t match."
-        : null;
+        : params.error === "logout"
+          ? "Sign-out could not be verified. Please try again."
+          : null;
 
   return (
     <div className="min-h-dvh grid lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] bg-base">

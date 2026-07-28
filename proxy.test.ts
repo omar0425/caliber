@@ -30,13 +30,41 @@ describe("deployment authentication", () => {
     expect(response.status).toBe(200);
   });
 
-  it("keeps Basic credentials working for API and command-line clients", () => {
+  it("does not accept legacy Basic credentials for API access", async () => {
     process.env.CALIBER_AUTH_USER = "omar";
     process.env.CALIBER_AUTH_SECRET = "long-secret";
     const authorization = `Basic ${Buffer.from("omar:long-secret").toString("base64")}`;
+    const response = proxy(
+      new NextRequest("https://caliber.test/api/settings", { headers: { authorization } })
+    );
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "Authentication required." });
+  });
+
+  it("does not let cached browser Basic credentials reopen signed-out pages", () => {
+    process.env.CALIBER_AUTH_USER = "omar";
+    process.env.CALIBER_AUTH_SECRET = "long-secret";
+    const authorization = `Basic ${Buffer.from("omar:long-secret").toString("base64")}`;
+    const response = proxy(
+      new NextRequest("https://caliber.test/collection", {
+        headers: { authorization },
+      })
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://caliber.test/login?next=%2Fcollection"
+    );
+  });
+
+  it("shows login even when the browser replays cached Basic credentials", () => {
+    process.env.CALIBER_AUTH_USER = "omar";
+    process.env.CALIBER_AUTH_SECRET = "long-secret";
+    const authorization = `Basic ${Buffer.from("omar:long-secret").toString("base64")}`;
+
     expect(
-      proxy(new NextRequest("https://caliber.test/api/settings", { headers: { authorization } }))
-        .status
+      proxy(new NextRequest("https://caliber.test/login", { headers: { authorization } })).status
     ).toBe(200);
   });
 

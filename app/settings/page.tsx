@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Status = {
@@ -38,6 +38,9 @@ export default function SettingsPage() {
   const [ownerInput, setOwnerInput] = useState("");
   const [ownerMsg, setOwnerMsg] = useState<string | null>(null);
   const [assigning, setAssigning] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
 
   async function loadUsage() {
     const res = await fetch("/api/usage");
@@ -122,6 +125,27 @@ export default function SettingsPage() {
       void load();
       void loadUsage();
       void loadOwnership();
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("password") === "changed") {
+        setPasswordNotice("Password changed. Use the new password the next time you sign in.");
+      }
+      const passwordFailure = url.searchParams.get("passwordError");
+      const passwordFailureMessages: Record<string, string> = {
+        "missing-current": "Enter your current password.",
+        "too-short": "Use at least 12 characters for the new password.",
+        "too-long": "That password is too long.",
+        same: "Choose a different new password.",
+        mismatch: "The new passwords do not match.",
+        incorrect: "The current password is incorrect.",
+      };
+      if (passwordFailure && passwordFailureMessages[passwordFailure]) {
+        setPasswordError(passwordFailureMessages[passwordFailure]);
+      }
+      if (url.searchParams.has("password") || url.searchParams.has("passwordError")) {
+        url.searchParams.delete("password");
+        url.searchParams.delete("passwordError");
+        window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+      }
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
@@ -153,6 +177,38 @@ export default function SettingsPage() {
     const res = await fetch("/api/settings", { method: "DELETE" });
     setStatus(await res.json());
     setNotice("API key removed. AI analysis is paused; no sample results will be substituted.");
+  }
+
+  async function changePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const fields = new FormData(form);
+    const currentPassword = String(fields.get("currentPassword") ?? "");
+    const newPassword = String(fields.get("newPassword") ?? "");
+    const confirmPassword = String(fields.get("confirmPassword") ?? "");
+    setPasswordError(null);
+    setPasswordNotice(null);
+    if (newPassword !== confirmPassword) {
+      setPasswordError("The new passwords do not match.");
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const res = await fetch("/api/auth/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unable to change the password.");
+      form.reset();
+      setPasswordNotice("Password changed. Use the new password the next time you sign in.");
+    } catch (e) {
+      setPasswordError(e instanceof Error ? e.message : "Unable to change the password.");
+    } finally {
+      setPasswordSaving(false);
+    }
   }
 
   const live = status?.configured;
@@ -297,6 +353,86 @@ export default function SettingsPage() {
           </p>
         </div>
       </div>
+
+      {/* Login security */}
+      <form
+        id="login-security"
+        action="/api/auth/password"
+        method="post"
+        onSubmit={changePassword}
+        className="card p-6 space-y-4"
+      >
+        <div>
+          <h3 className="font-serif text-lg">Login security</h3>
+          <p className="text-sm text-muted mt-1">
+            Change the password used by the Caliber sign-in screen. The new password is stored as
+            a salted one-way hash and takes effect immediately.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="current-password" className="label">Current password</label>
+          <input
+            id="current-password"
+            name="currentPassword"
+            type="password"
+            autoComplete="current-password"
+            maxLength={512}
+            required
+            className="input mt-1.5"
+          />
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="new-password" className="label">New password</label>
+            <input
+              id="new-password"
+              name="newPassword"
+              type="password"
+              autoComplete="new-password"
+              minLength={12}
+              maxLength={512}
+              required
+              className="input mt-1.5"
+            />
+          </div>
+          <div>
+            <label htmlFor="confirm-password" className="label">Confirm new password</label>
+            <input
+              id="confirm-password"
+              name="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              minLength={12}
+              maxLength={512}
+              required
+              className="input mt-1.5"
+            />
+          </div>
+        </div>
+
+        {passwordError && (
+          <p className="text-danger text-sm bg-danger/10 border border-danger/30 rounded-lg p-3">
+            {passwordError}
+          </p>
+        )}
+        {passwordNotice && (
+          <p className="text-good text-sm bg-good/10 border border-good/30 rounded-lg p-3">
+            {passwordNotice}
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            disabled={passwordSaving}
+            className="btn btn-gold"
+          >
+            {passwordSaving ? "Changing..." : "Change password"}
+          </button>
+          <p className="text-xs text-muted">Use at least 12 characters.</p>
+        </div>
+      </form>
 
       {/* Ownership */}
       <div className="card p-6 space-y-4">
