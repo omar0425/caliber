@@ -40,10 +40,14 @@ export function authenticationConfigured(): boolean {
   return authSecret() !== null;
 }
 
+export function verifyUsername(user: string): boolean {
+  return sameText(user, authUser());
+}
+
 export function verifyCredentials(user: string, password: string): boolean {
   const expectedPassword = authSecret();
   if (!expectedPassword) return false;
-  return sameText(user, authUser()) && samePassword(password, expectedPassword);
+  return verifyUsername(user) && samePassword(password, expectedPassword);
 }
 
 export function createSessionToken(now = Date.now()): string {
@@ -76,18 +80,6 @@ export function verifySessionToken(token: string | null | undefined, now = Date.
       Number.isSafeInteger(payload.expiresAt) &&
       payload.expiresAt > Math.floor(now / 1000)
     );
-  } catch {
-    return false;
-  }
-}
-
-export function verifyBasicAuthorization(header: string | null): boolean {
-  if (!header?.startsWith("Basic ")) return false;
-  try {
-    const decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
-    const separator = decoded.indexOf(":");
-    if (separator < 0) return false;
-    return verifyCredentials(decoded.slice(0, separator), decoded.slice(separator + 1));
   } catch {
     return false;
   }

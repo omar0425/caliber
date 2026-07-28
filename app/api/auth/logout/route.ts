@@ -1,18 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE } from "@/lib/auth";
+import {
+  hasValidFormOrigin,
+  publicRequestOrigin,
+  requestUsesHttps,
+} from "@/lib/requestOrigin";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  const origin = req.headers.get("origin");
-  if (origin && origin !== req.nextUrl.origin) {
-    return NextResponse.json({ error: "Invalid logout origin." }, { status: 403 });
+  const publicOrigin = publicRequestOrigin(req);
+  if (!hasValidFormOrigin(req)) {
+    const rejected = NextResponse.redirect(new URL("/login?error=logout", publicOrigin), 303);
+    rejected.headers.set("Cache-Control", "no-store");
+    return rejected;
   }
 
-  const response = NextResponse.redirect(new URL("/login", req.url), 303);
+  const response = NextResponse.redirect(new URL("/login", publicOrigin), 303);
   response.cookies.set(SESSION_COOKIE, "", {
     httpOnly: true,
-    secure: req.nextUrl.protocol === "https:",
+    secure: requestUsesHttps(req),
     sameSite: "lax",
     path: "/",
     maxAge: 0,

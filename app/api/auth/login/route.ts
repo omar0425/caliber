@@ -4,8 +4,8 @@ import {
   sanitizeReturnTo,
   SESSION_COOKIE,
   SESSION_TTL_SECONDS,
-  verifyCredentials,
 } from "@/lib/auth";
+import { verifyLoginCredentials } from "@/lib/password";
 import {
   clearLoginFailures,
   loginRetryAfter,
@@ -16,11 +16,16 @@ import {
   enforceContentType,
   RequestError,
 } from "@/lib/security";
+import {
+  hasValidFormOrigin,
+  publicRequestOrigin,
+  requestUsesHttps,
+} from "@/lib/requestOrigin";
 
 export const runtime = "nodejs";
 
 function loginRedirect(req: NextRequest, error: "invalid" | "rate", returnTo: string) {
-  const url = new URL("/login", req.url);
+  const url = new URL("/login", publicRequestOrigin(req));
   url.searchParams.set("error", error);
   if (returnTo !== "/") url.searchParams.set("next", returnTo);
   return NextResponse.redirect(url, 303);
@@ -31,8 +36,7 @@ export async function POST(req: NextRequest) {
     enforceContentLength(req, 16 * 1024);
     enforceContentType(req, "application/x-www-form-urlencoded");
 
-    const origin = req.headers.get("origin");
-    if (origin && origin !== req.nextUrl.origin) {
+    if (!hasValidFormOrigin(req)) {
       throw new RequestError("Invalid login origin.", 403);
     }
 
@@ -47,16 +51,16 @@ export async function POST(req: NextRequest) {
     if (loginRetryAfter(req) > 0) {
       return loginRedirect(req, "rate", returnTo);
     }
-    if (!verifyCredentials(user, password)) {
+    if (!(await verifyLoginCredentials(user, password))) {
       const retryAfter = recordLoginFailure(req);
       return loginRedirect(req, retryAfter > 0 ? "rate" : "invalid", returnTo);
     }
 
     clearLoginFailures(req);
-    const response = NextResponse.redirect(new URL(returnTo, req.url), 303);
+    const response = NextResponse.redirect(new URL(returnTo, publicRequestOrigin(req)), 303);
     response.cookies.set(SESSION_COOKIE, createSessionToken(), {
       httpOnly: true,
-      secure: req.nextUrl.protocol === "https:",
+      secure: requestUsesHttps(req),
       sameSite: "lax",
       path: "/",
       maxAge: SESSION_TTL_SECONDS,
