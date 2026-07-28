@@ -16,12 +16,20 @@ function authSecret(): string | null {
   return process.env.CALIBER_AUTH_SECRET?.trim() || null;
 }
 
-function digest(value: string): Buffer {
+function digestForComparison(value: string): Buffer {
   return crypto.createHash("sha256").update(value).digest();
 }
 
-function sameSecret(left: string, right: string): boolean {
-  return crypto.timingSafeEqual(digest(left), digest(right));
+function sameText(left: string, right: string): boolean {
+  return crypto.timingSafeEqual(digestForComparison(left), digestForComparison(right));
+}
+
+function passwordDigest(value: string): Buffer {
+  return crypto.scryptSync(value, "caliber-auth-credentials-v1", 32);
+}
+
+function samePassword(left: string, right: string): boolean {
+  return crypto.timingSafeEqual(passwordDigest(left), passwordDigest(right));
 }
 
 function signature(value: string, secret: string): string {
@@ -35,7 +43,7 @@ export function authenticationConfigured(): boolean {
 export function verifyCredentials(user: string, password: string): boolean {
   const expectedPassword = authSecret();
   if (!expectedPassword) return false;
-  return sameSecret(user, authUser()) && sameSecret(password, expectedPassword);
+  return sameText(user, authUser()) && samePassword(password, expectedPassword);
 }
 
 export function createSessionToken(now = Date.now()): string {
@@ -59,7 +67,7 @@ export function verifySessionToken(token: string | null | undefined, now = Date.
   if (version !== "v1" || !encoded || !providedSignature || extra) return false;
 
   const unsigned = `${version}.${encoded}`;
-  if (!sameSecret(providedSignature, signature(unsigned, secret))) return false;
+  if (!sameText(providedSignature, signature(unsigned, secret))) return false;
 
   try {
     const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as SessionPayload;
