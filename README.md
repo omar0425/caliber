@@ -28,15 +28,16 @@ npm run dev               # http://localhost:3000
 
 ### Enabling real AI (recommended)
 
-The app runs in **demo mode** with mock results until you add a key. The easiest way:
+AI analysis stays safely paused until you add a key. The rest of the collection app remains
+available, but Caliber never pairs a real photo with unrelated sample data. The easiest setup:
 
 1. Start the app and open the **Settings** page (in the top nav).
 2. Paste your OpenAI API key (get one at
    https://platform.openai.com/api-keys) and click **Save & go live**.
 
-That's it — recognition and vetting immediately switch to real AI. The key is shown
+That's it — recognition, re-analysis, and vetting immediately switch on. The key is shown
 masked and, when a deployment encryption or login secret is configured, encrypted at
-rest in the local database. Remove it anytime to return to demo mode.
+rest in the local database. Remove it anytime to pause AI features again.
 
 Prefer environment config? Set `OPENAI_API_KEY` in `.env` and restart. This is safer
 than storing the key in SQLite.
@@ -108,7 +109,7 @@ Rules that keep the data safe when changing code:
 
 - `lib/ai.ts` — the recognition + vetting engine. Calls OpenAI with the photo, enables
   the web-search tool to confirm reference numbers and market value, and returns
-  validated structured data. Falls back to mock data when no key is set.
+  validated structured data. AI routes fail safely when no key is set.
 - `lib/prisma.ts` / `prisma/schema.prisma` — the `Watch` + `Valuation` data model.
 - `app/api/*` — route handlers for identify, vet, and watch CRUD.
 - `app/*` — the dashboard, identify, collection, watch-detail, and vet pages.
@@ -134,7 +135,9 @@ Rules that keep the data safe when changing code:
 ## Tech notes
 
 - Uploaded files are saved in `UPLOAD_DIR` and served through an authenticated route.
-- The deployment is protected by HTTP Basic authentication and designed for one trusted
-  user or household. Add per-user database ownership before turning it into a public SaaS.
+- The deployment uses a branded Caliber login backed by a signed, HTTP-only session cookie and is
+  designed for one trusted user or household. The same credentials still work with HTTP Basic
+  authentication for command-line and API clients, but browsers are not challenged with the
+  native Basic Auth popup. Add per-user database ownership before turning it into a public SaaS.
 - Value estimates are guidance, not appraisals. Always verify high-value pieces with
   papers, service history, and an in-person inspection.

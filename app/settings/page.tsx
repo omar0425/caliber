@@ -149,10 +149,10 @@ export default function SettingsPage() {
   }
 
   async function remove() {
-    if (!confirm("Remove the saved API key? Caliber will return to demo mode.")) return;
+    if (!confirm("Remove the saved API key? AI analysis will be paused.")) return;
     const res = await fetch("/api/settings", { method: "DELETE" });
     setStatus(await res.json());
-    setNotice("API key removed. Caliber is back in demo mode.");
+    setNotice("API key removed. AI analysis is paused; no sample results will be substituted.");
   }
 
   const live = status?.configured;
@@ -173,7 +173,7 @@ export default function SettingsPage() {
         />
         <div className="flex-1">
           <p className="font-medium">
-            {live ? "Live — real AI enabled" : "Demo mode — using sample results"}
+            {live ? "Live — real AI enabled" : "AI paused — no API key configured"}
           </p>
           <p className="text-sm text-muted">
             {status?.source === "app" && `Key configured in-app (${status.masked}).`}
@@ -239,7 +239,7 @@ export default function SettingsPage() {
               : "Deployment environment secrets are preferred for production."}
           </li>
           <li>You&apos;re billed by OpenAI per analysis; Caliber uses the cost-efficient Luna model by default.</li>
-          <li>Remove it anytime to drop back to free demo mode.</li>
+          <li>Remove it anytime to pause paid AI calls; Caliber will not substitute sample results.</li>
         </ul>
       </div>
 

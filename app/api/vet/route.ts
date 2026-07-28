@@ -57,17 +57,21 @@ export async function POST(req: NextRequest) {
     }
 
     const enabled = await aiEnabled();
-    if (enabled) await enforceAiBudget();
+    if (!enabled) {
+      throw new RequestError(
+        "Add an OpenAI API key on the Settings page before vetting a real watch.",
+        503
+      );
+    }
+    await enforceAiBudget();
     const result = await vetWatch(imagePayload, listingText);
-    if (enabled) {
-      try {
-        await setCached(key, "vet", result);
-      } catch (error) {
-        console.error("vet cache write failed", error);
-      }
+    try {
+      await setCached(key, "vet", result);
+    } catch (error) {
+      console.error("vet cache write failed", error);
     }
 
-    return NextResponse.json({ result, demoMode: !enabled, cached: false });
+    return NextResponse.json({ result, cached: false });
   } catch (err) {
     console.error("vet error", err);
     return NextResponse.json(

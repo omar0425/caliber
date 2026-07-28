@@ -8,8 +8,10 @@ import DocumentVault, { DocLite } from "@/components/DocumentVault";
 import ServiceLog, { ServiceLite } from "@/components/ServiceLog";
 import WatchChat from "@/components/WatchChat";
 import ValuationHistory from "@/components/ValuationHistory";
+import IdentificationCorrection from "@/components/IdentificationCorrection";
 import { WatchSpec } from "@/lib/types";
 import { normalizeHttpSources } from "@/lib/aiSources";
+import { legacyDemoRecord } from "@/lib/identificationQuality";
 
 type Valuation = { id: string; low: number; high: number; source: string | null; createdAt: string };
 
@@ -83,6 +85,18 @@ function parseSources(raw: string | null): string[] {
   }
 }
 
+function parseObservedBrand(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { observedBrand?: unknown };
+    return typeof parsed.observedBrand === "string" && parsed.observedBrand.trim()
+      ? parsed.observedBrand.trim().slice(0, 200)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
   const router = useRouter();
   const [status, setStatus] = useState(watch.status);
@@ -96,6 +110,7 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
 
   const spec: WatchSpec = {
     brand: watch.brand,
+    observedBrand: parseObservedBrand(watch.specJson),
     model: watch.model,
     referenceNumber: watch.referenceNumber,
     nickname: watch.nickname,
@@ -127,6 +142,7 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
     scarcity: watch.scarcity,
     sources: parseSources(watch.specJson),
   };
+  const isLegacyDemo = legacyDemoRecord(watch.summary, watch.history, watch.scarcity);
 
   async function save() {
     setSaving(true);
@@ -181,6 +197,12 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
       {/* Specs + collection meta */}
       <div className="space-y-6 max-lg:contents">
         <div className="max-lg:order-2 card p-6">
+          <IdentificationCorrection
+            watchId={watch.id}
+            hasCoverPhoto={Boolean(watch.imageUrl)}
+            spec={spec}
+            legacyDemo={isLegacyDemo}
+          />
           <SpecSheet spec={spec} />
         </div>
 

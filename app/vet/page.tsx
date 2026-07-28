@@ -24,7 +24,6 @@ export default function VetPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<VetResult | null>(null);
-  const [demoMode, setDemoMode] = useState(false);
   const [cached, setCached] = useState(false);
 
   function pickFile(f: File) {
@@ -49,7 +48,6 @@ export default function VetPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Vetting failed.");
       setResult(data.result);
-      setDemoMode(data.demoMode);
       setCached(Boolean(data.cached));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -107,12 +105,6 @@ export default function VetPage() {
           )}
           {result && verdict && (
             <div className="space-y-5">
-              {demoMode && (
-                <p className="text-warn text-xs bg-warn/10 border border-warn/30 rounded-lg p-2.5">
-                  Demo mode — add your API key on the{" "}
-                  <a href="/settings" className="underline font-medium">Settings</a> page for real vetting.
-                </p>
-              )}
               {cached && (
                 <p className="text-good text-xs bg-good/10 border border-good/30 rounded-lg p-2.5">
                   ✓ Loaded from a previous check of this exact photo and listing — no new charge.

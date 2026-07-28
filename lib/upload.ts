@@ -142,6 +142,38 @@ export async function deleteStoredFile(publicUrl: string | null | undefined): Pr
   }
 }
 
+export async function loadStoredImage(
+  publicUrl: string | null | undefined
+): Promise<{ base64: string; mediaType: string }> {
+  const match = publicUrl?.match(
+    /^\/api\/uploads\/([a-f0-9]{16,}\.(jpg|png|webp|gif))$/
+  );
+  if (!match) {
+    throw new RequestError("Add a Caliber-hosted cover photo before re-analyzing.", 400);
+  }
+
+  const mediaTypes: Record<string, string> = {
+    jpg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    gif: "image/gif",
+  };
+  const mediaType = mediaTypes[match[2]];
+  try {
+    const bytes = await fs.readFile(path.join(UPLOAD_DIR, match[1]));
+    if (!matchesSignature(bytes, mediaType)) {
+      throw new RequestError("The saved cover photo is unreadable.", 400);
+    }
+    return { base64: bytes.toString("base64"), mediaType };
+  } catch (error) {
+    if (error instanceof RequestError) throw error;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new RequestError("The saved cover photo could not be found.", 404);
+    }
+    throw error;
+  }
+}
+
 // Persist an arbitrary provenance document (image or PDF) under UPLOAD_DIR.
 // Image documents (photographed receipts etc.) are compressed; PDFs pass through.
 export async function saveUploadedFile(file: File): Promise<SavedFile> {
