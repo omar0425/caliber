@@ -82,8 +82,8 @@ export default function WelcomeModal() {
         <>
           <p className="text-lg text-muted">
             Caliber uses AI to recognize watches. You&apos;ll add a simple key once (we&apos;ll show
-            you exactly how). Until then, it runs in a free <strong className="text-ink">demo mode</strong> so
-            you can look around.
+            you exactly how). Until then, AI analysis stays paused while you can still look around
+            the collection features.
           </p>
           <p className="text-base text-muted mt-3">
             One thing to remember: the AI is smart but not perfect — it can make mistakes, so

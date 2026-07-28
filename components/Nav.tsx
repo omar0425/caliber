@@ -32,30 +32,56 @@ export default function Nav() {
           </Link>
 
           {/* Desktop: full nav */}
-          <nav className="hidden md:flex items-center gap-1">
-            {LINKS.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`px-3.5 py-2.5 rounded-lg text-base font-medium transition-colors ${
-                  isActive(l.href) ? "text-accent bg-surface-2" : "text-muted hover:text-ink"
-                }`}
-              >
-                {l.label}
-              </Link>
-            ))}
-          </nav>
+          <div className="hidden md:flex items-center gap-2">
+            <nav className="flex items-center gap-1">
+              {LINKS.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={`px-3.5 py-2.5 rounded-lg text-base font-medium transition-colors ${
+                    isActive(l.href) ? "text-accent bg-surface-2" : "text-muted hover:text-ink"
+                  }`}
+                >
+                  {l.label}
+                </Link>
+              ))}
+            </nav>
+            <form action="/api/auth/logout" method="post" className="border-l border-line pl-2">
+              <button type="submit" className="btn btn-ghost min-h-0! px-3! py-2.5! text-sm">
+                Sign out
+              </button>
+            </form>
+          </div>
 
-          {/* Mobile: just a settings gear (main nav is the bottom bar) */}
-          <Link
-            href="/settings"
-            aria-label="Settings"
-            className={`md:hidden p-2.5 rounded-lg ${
-              isActive("/settings") ? "text-accent bg-surface-2" : "text-muted"
-            }`}
-          >
-            <GearIcon className="w-6 h-6" />
-          </Link>
+          {/* Mobile: settings plus sign out (main nav is the bottom bar) */}
+          <div className="md:hidden flex items-center gap-1">
+            <Link
+              href="/settings"
+              aria-label="Settings"
+              className={`p-2.5 rounded-lg ${
+                isActive("/settings") ? "text-accent bg-surface-2" : "text-muted"
+              }`}
+            >
+              <GearIcon className="w-6 h-6" />
+            </Link>
+            <form action="/api/auth/logout" method="post">
+              <button
+                type="submit"
+                aria-label="Sign out"
+                className="p-2.5 rounded-lg text-muted hover:text-ink"
+              >
+                <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6" aria-hidden>
+                  <path
+                    d="M10 5H6.5A2.5 2.5 0 004 7.5v9A2.5 2.5 0 006.5 19H10M14 8l4 4-4 4M8 12h10"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </form>
+          </div>
         </div>
       </header>
 

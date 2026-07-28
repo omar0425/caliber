@@ -14,7 +14,6 @@ export default function IdentifyPage() {
   const [error, setError] = useState<string | null>(null);
   const [spec, setSpec] = useState<WatchSpec | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [demoMode, setDemoMode] = useState(false);
   const [cached, setCached] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("owned");
@@ -39,7 +38,6 @@ export default function IdentifyPage() {
       if (!res.ok) throw new Error(data.error || "Identification failed.");
       setSpec(data.spec);
       setImageUrl(data.imageUrl);
-      setDemoMode(data.demoMode);
       setCached(Boolean(data.cached));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -106,12 +104,6 @@ export default function IdentifyPage() {
           )}
           {spec && (
             <div className="space-y-5">
-              {demoMode && (
-                <p className="text-warn text-xs bg-warn/10 border border-warn/30 rounded-lg p-2.5">
-                  Demo mode — add your API key on the{" "}
-                  <a href="/settings" className="underline font-medium">Settings</a> page for real analysis.
-                </p>
-              )}
               {cached && (
                 <p className="text-good text-xs bg-good/10 border border-good/30 rounded-lg p-2.5">
                   ✓ Loaded from a previous analysis of this exact photo — no new charge.

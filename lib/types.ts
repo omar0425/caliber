@@ -3,6 +3,10 @@ import { z } from "zod";
 // Structured spec sheet returned by the AI recognition layer.
 export const WatchSpecSchema = z.object({
   brand: z.string().describe("Manufacturer, e.g. Rolex"),
+  observedBrand: z
+    .string()
+    .nullable()
+    .describe("Brand name visibly legible on the dial, caseback, movement, or clasp; null if unreadable"),
   model: z.string().describe("Model line, e.g. Submariner Date"),
   referenceNumber: z.string().nullable(),
   nickname: z.string().nullable().describe("Collector nickname, e.g. Hulk"),

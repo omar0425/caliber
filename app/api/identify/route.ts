@@ -15,6 +15,7 @@ import {
 } from "@/lib/security";
 import { WatchSpecSchema } from "@/lib/types";
 import { normalizeHttpSources } from "@/lib/aiSources";
+import { findBrandConflict } from "@/lib/identificationQuality";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -37,6 +38,16 @@ export async function POST(req: NextRequest) {
     const key = cacheKey("identify", prepared.hash);
     const cachedResult = WatchSpecSchema.safeParse(await getCached<unknown>(key));
     if (cachedResult.success) {
+      const conflict = findBrandConflict(
+        cachedResult.data.brand,
+        cachedResult.data.observedBrand
+      );
+      if (conflict) {
+        throw new RequestError(
+          `The photo appears to say “${conflict.observedBrand},” but the result says “${conflict.identifiedBrand}.” Caliber refused the conflicting result.`,
+          422
+        );
+      }
       const saved = await persistPreparedImage(prepared);
       savedUrl = saved.publicUrl;
       return NextResponse.json({
@@ -45,32 +56,40 @@ export async function POST(req: NextRequest) {
           sources: normalizeHttpSources(cachedResult.data.sources),
         },
         imageUrl: saved.publicUrl,
-        demoMode: false,
         cached: true,
       });
     }
 
     const enabled = await aiEnabled();
-    if (enabled) await enforceAiBudget();
+    if (!enabled) {
+      throw new RequestError(
+        "Add an OpenAI API key on the Settings page before analyzing a real photo.",
+        503
+      );
+    }
+    await enforceAiBudget();
 
     // Persist before making a paid call so a disk failure cannot waste an
     // analysis. The catch block removes this file if the AI request fails.
     const saved = await persistPreparedImage(prepared);
     savedUrl = saved.publicUrl;
     const spec = await identifyWatch({ base64: saved.base64, mediaType: saved.mediaType });
-    // Only cache real (billed) results, never the demo placeholder.
-    if (enabled) {
-      try {
-        await setCached(key, "identify", spec);
-      } catch (error) {
-        console.error("identify cache write failed", error);
-      }
+    const conflict = findBrandConflict(spec.brand, spec.observedBrand);
+    if (conflict) {
+      throw new RequestError(
+        `The photo appears to say “${conflict.observedBrand},” but the result says “${conflict.identifiedBrand}.” Caliber refused the conflicting result. Try a sharper dial photo.`,
+        422
+      );
+    }
+    try {
+      await setCached(key, "identify", spec);
+    } catch (error) {
+      console.error("identify cache write failed", error);
     }
 
     return NextResponse.json({
       spec,
       imageUrl: saved.publicUrl,
-      demoMode: !enabled,
       cached: false,
     });
   } catch (err) {

@@ -29,6 +29,11 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
           <p className="text-accent text-sm font-medium tracking-wide uppercase">{spec.brand}</p>
           <h2 className="font-serif text-2xl mt-0.5">{spec.model}</h2>
           {spec.nickname && <p className="text-muted text-sm mt-1">“{spec.nickname}”</p>}
+          {spec.observedBrand && (
+            <p className="text-xs text-good mt-2">
+              Visible branding checked: <span className="font-semibold">{spec.observedBrand}</span>
+            </p>
+          )}
         </div>
         <ConfidenceBadge value={spec.confidence} />
       </div>
