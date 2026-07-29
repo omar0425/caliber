@@ -20,27 +20,60 @@ export default async function AppraisalPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between no-print">
-        <p className="text-muted text-sm">Preview — this page is formatted for printing.</p>
+      <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-center min-[400px]:justify-between gap-3 no-print">
+        <p className="text-muted text-base">Preview — this page is formatted for printing.</p>
         <PrintButton />
       </div>
 
-      <div className="paper p-5 sm:p-10 max-w-3xl mx-auto">
+      <div className="paper p-4 min-[400px]:p-5 sm:p-10 max-w-3xl mx-auto">
         {/* Header */}
-        <div className="flex items-start justify-between border-b-2 border-[#c8a45c] pb-4">
+        <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-start min-[400px]:justify-between gap-3 border-b-2 border-[#c8a45c] pb-4">
           <div>
             <h1 className="font-serif text-3xl text-[#14141a]">Caliber</h1>
-            <p className="text-sm text-[#6a6a72]">Collection Appraisal Summary</p>
+            <p className="text-base text-[#6a6a72]">Collection Appraisal Summary</p>
           </div>
-          <div className="text-right text-sm text-[#6a6a72]">
+          <div className="text-left min-[400px]:text-right text-base text-[#6a6a72]">
             <p>Date: {today}</p>
             <p>{watches.length} timepieces</p>
           </div>
         </div>
 
-        {/* Table — horizontally scrollable on narrow screens so it never overflows the page */}
-        <div className="overflow-x-auto">
-        <table className="w-full min-w-[26rem] text-sm mt-6 border-collapse">
+        {/* Readable cards on phones; the full table remains the print and desktop format. */}
+        <div className="sm:hidden print:hidden mt-5 divide-y divide-[#ddd] border-y border-[#ddd]">
+          {watches.map((w) => (
+            <article key={w.id} className="py-4">
+              <h2 className="text-lg font-semibold text-[#14141a] leading-snug break-words">
+                {w.brand} {w.model}
+              </h2>
+              <dl className="mt-3 space-y-2 text-base">
+                <div className="flex items-start justify-between gap-4">
+                  <dt className="text-[#6a6a72]">Reference</dt>
+                  <dd className="text-right text-[#33333a] break-words">{w.referenceNumber ?? "—"}</dd>
+                </div>
+                <div className="flex items-start justify-between gap-4">
+                  <dt className="text-[#6a6a72]">Condition</dt>
+                  <dd className="text-right text-[#33333a] break-words">{w.condition ?? "—"}</dd>
+                </div>
+                <div className="flex items-start justify-between gap-4">
+                  <dt className="text-[#6a6a72]">Estimated value</dt>
+                  <dd className="text-right font-semibold text-[#14141a]">
+                    {money(midpoint(w.estValueLow, w.estValueHigh))}
+                  </dd>
+                </div>
+              </dl>
+            </article>
+          ))}
+          {watches.length === 0 && (
+            <p className="py-6 text-center text-base text-[#6a6a72]">No owned watches to appraise.</p>
+          )}
+          <div className="py-4 flex items-start justify-between gap-4 border-t-2 border-[#c8a45c]">
+            <p className="text-base font-semibold text-[#14141a]">Total estimated value</p>
+            <p className="font-serif text-xl text-right text-[#14141a]">{money(total)}</p>
+          </div>
+        </div>
+
+        <div className="hidden sm:block print:block overflow-x-auto">
+        <table className="w-full min-w-[26rem] text-base mt-6 border-collapse">
           <thead>
             <tr className="text-left border-b border-[#ddd] text-[#6a6a72]">
               <th className="py-2 pr-2 font-semibold">Brand &amp; Model</th>
@@ -79,7 +112,7 @@ export default async function AppraisalPage() {
         </div>
 
         {/* Disclaimer */}
-        <p className="text-xs text-[#6a6a72] mt-8 leading-relaxed">
+        <p className="text-[0.95rem] text-[#6a6a72] mt-8 leading-relaxed">
           This summary is generated from AI-assisted market estimates for informational and insurance-scheduling
           purposes. Values reflect approximate secondary-market ranges at the date shown and are not a certified
           appraisal. For high-value pieces, obtain an independent professional appraisal and retain original

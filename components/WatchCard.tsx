@@ -26,29 +26,29 @@ export default function WatchCard({ watch }: { watch: WatchCardData }) {
       : null;
 
   return (
-    <div className="group card card-hover overflow-hidden flex flex-col relative">
+    <div className="group card card-hover overflow-hidden flex flex-col relative min-w-0">
       <CardPrintButton watchId={watch.id} label={`${watch.brand} ${watch.model}`} />
-      <Link href={`/watch/${watch.id}`} className="flex flex-col flex-1">
+      <Link href={`/watch/${watch.id}`} className="flex flex-col flex-1 min-w-0">
       <div className="aspect-square bg-surface-2 flex items-center justify-center overflow-hidden">
         {watch.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={watch.imageUrl} alt={`${watch.brand} ${watch.model}`} className="w-full h-full object-cover" />
         ) : (
-          <span className="text-muted text-sm">No photo</span>
+          <span className="text-muted text-base">No photo</span>
         )}
       </div>
-      <div className="p-4 flex-1 flex flex-col">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-accent text-xs font-medium uppercase tracking-wide truncate">{watch.brand}</p>
-          <span className="text-[10px] uppercase tracking-wide text-muted border border-line rounded-full px-2 py-0.5">
+      <div className="p-4 min-[400px]:p-5 flex-1 flex flex-col min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-accent text-[0.95rem] font-semibold uppercase tracking-wide break-words min-w-0">{watch.brand}</p>
+          <span className="text-[0.95rem] uppercase tracking-wide text-muted border border-line rounded-full px-2.5 py-1 shrink-0">
             {STATUS_LABEL[watch.status] ?? watch.status}
           </span>
         </div>
-        <h3 className="font-serif text-lg leading-tight mt-1 truncate">{watch.model}</h3>
-        <p className="text-muted text-xs mt-0.5 truncate">
+        <h3 className="font-serif text-xl leading-snug mt-1 break-words">{watch.model}</h3>
+        <p className="text-muted text-base mt-1 break-words">
           {watch.referenceNumber || watch.nickname || " "}
         </p>
-        {value && <p className="text-sm text-accent-soft mt-auto pt-3">{value}</p>}
+        {value && <p className="text-base font-medium text-accent-soft mt-auto pt-3 break-words">{value}</p>}
       </div>
       </Link>
     </div>

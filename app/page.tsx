@@ -34,21 +34,21 @@ export default async function Dashboard() {
     .sort((a, b) => (a.due?.getTime() ?? 0) - (b.due?.getTime() ?? 0));
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8 sm:space-y-10">
       {/* Hero */}
-      <section className="card p-8 sm:p-10 relative overflow-hidden">
+      <section className="card p-5 min-[400px]:p-6 sm:p-10 relative overflow-hidden">
         <div className="relative z-10 max-w-2xl">
           <p className="label mb-3">Watch intelligence for collectors</p>
-          <h1 className="font-serif text-4xl sm:text-5xl leading-tight">
+          <h1 className="font-serif text-[2rem] min-[400px]:text-4xl sm:text-5xl leading-[1.12]">
             Know every watch<br />before you own it.
           </h1>
-          <p className="text-muted mt-4 leading-relaxed">
+          <p className="text-base text-muted mt-4 leading-relaxed">
             Snap a photo to identify any watch, pull its full specs and market value, and vet
             listings for fakes before you buy. Your entire collection, catalogued and understood.
           </p>
-          <div className="flex flex-wrap gap-3 mt-6">
-            <Link href="/identify" className="btn btn-gold">Identify a watch</Link>
-            <Link href="/vet" className="btn btn-ghost">Vet a purchase</Link>
+          <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:flex sm:flex-wrap gap-3 mt-6">
+            <Link href="/identify" className="btn btn-gold w-full sm:w-auto">Identify a watch</Link>
+            <Link href="/vet" className="btn btn-ghost w-full sm:w-auto">Vet a purchase</Link>
           </div>
         </div>
       </section>
@@ -57,15 +57,15 @@ export default async function Dashboard() {
       <GettingStarted keyConfigured={keyConfigured} hasWatch={totalCount > 0} />
 
       {/* Stats */}
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <section className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: "Watches", value: totalCount.toString() },
           { label: "In collection", value: owned.length.toString() },
           { label: "Est. collection value", value: ownedValue ? money(ownedValue) : "—" },
           { label: "Brands", value: brands.toString() },
         ].map((s) => (
-          <div key={s.label} className="card p-5">
-            <p className="label">{s.label}</p>
+          <div key={s.label} className="card p-4 sm:p-5">
+            <p className="text-[0.95rem] font-semibold text-muted leading-snug">{s.label}</p>
             <p className="font-serif text-2xl mt-2 text-accent-soft">{s.value}</p>
           </div>
         ))}
@@ -73,18 +73,18 @@ export default async function Dashboard() {
 
       {/* Service reminders */}
       {serviceDue.length > 0 && (
-        <section className="card p-5">
+        <section className="card p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-2 h-2 rounded-full" style={{ background: "var(--color-warn)" }} />
             <h2 className="font-serif text-lg">Needs attention</h2>
           </div>
           <ul className="space-y-2">
             {serviceDue.slice(0, 5).map(({ watch, due, status }) => (
-              <li key={watch.id} className="flex items-center justify-between text-sm">
-                <Link href={`/watch/${watch.id}`} className="hover:text-accent">
+              <li key={watch.id} className="flex flex-col min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between gap-1 text-base py-1">
+                <Link href={`/watch/${watch.id}`} className="hover:text-accent min-w-0 break-words">
                   <span className="text-accent-soft">{watch.brand}</span> {watch.model}
                 </Link>
-                <span style={{ color: status === "overdue" ? "var(--color-danger)" : "var(--color-warn)" }}>
+                <span className="shrink-0" style={{ color: status === "overdue" ? "var(--color-danger)" : "var(--color-warn)" }}>
                   {status === "overdue" ? "Service overdue" : "Service due"} · {due?.toLocaleDateString()}
                 </span>
               </li>
@@ -95,22 +95,22 @@ export default async function Dashboard() {
 
       {/* Recent */}
       <section>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
           <h2 className="font-serif text-2xl">Recently added</h2>
-          <Link href="/collection" className="text-sm text-accent hover:underline">
+          <Link href="/collection" className="text-base text-accent hover:underline">
             View collection →
           </Link>
         </div>
         <div className="rule mb-6" />
         {watches.length === 0 ? (
-          <div className="card p-10 text-center">
-            <p className="text-muted">Your collection is empty.</p>
-            <Link href="/identify" className="btn btn-gold mt-4 inline-flex">
+          <div className="card p-6 sm:p-10 text-center">
+            <p className="text-base text-muted">Your collection is empty.</p>
+            <Link href="/identify" className="btn btn-gold mt-4 inline-flex w-full min-[400px]:w-auto">
               Add your first watch
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {watches.map((w) => (
               <WatchCard key={w.id} watch={w} />
             ))}

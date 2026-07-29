@@ -5,7 +5,7 @@ import {
   persistPreparedImage,
   prepareUploadedImage,
 } from "@/lib/upload";
-import { cacheKey, getCached, setCached } from "@/lib/aiCache";
+import { cacheKey, getCached, identifyInputHash, setCached } from "@/lib/aiCache";
 import {
   enforceAiBudget,
   enforceAiRateLimit,
@@ -30,12 +30,14 @@ export async function POST(req: NextRequest) {
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "No image uploaded." }, { status: 400 });
     }
+    const hintValue = form.get("hint");
+    const hint = typeof hintValue === "string" ? hintValue.trim().slice(0, 500) : "";
     enforceAiRateLimit(req);
 
     const prepared = await prepareUploadedImage(file);
 
     // If this exact image was analyzed before, reuse the stored result — no new charge.
-    const key = cacheKey("identify", prepared.hash);
+    const key = cacheKey("identify", identifyInputHash(prepared.hash, hint));
     const cachedResult = WatchSpecSchema.safeParse(await getCached<unknown>(key));
     if (cachedResult.success) {
       const conflict = findBrandConflict(
@@ -73,7 +75,10 @@ export async function POST(req: NextRequest) {
     // analysis. The catch block removes this file if the AI request fails.
     const saved = await persistPreparedImage(prepared);
     savedUrl = saved.publicUrl;
-    const spec = await identifyWatch({ base64: saved.base64, mediaType: saved.mediaType });
+    const spec = await identifyWatch(
+      { base64: saved.base64, mediaType: saved.mediaType },
+      hint
+    );
     const conflict = findBrandConflict(spec.brand, spec.observedBrand);
     if (conflict) {
       throw new RequestError(

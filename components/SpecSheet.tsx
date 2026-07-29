@@ -9,9 +9,11 @@ function money(n?: number | null) {
 function Row({ label, value }: { label: string; value?: string | number | null }) {
   if (value === null || value === undefined || value === "") return null;
   return (
-    <div className="flex justify-between gap-4 py-2 border-b border-line/50 text-sm">
-      <span className="text-muted">{label}</span>
-      <span className="text-ink text-right font-medium">{value}</span>
+    <div className="grid min-w-0 grid-cols-1 gap-1 border-b border-line/50 py-3 min-[400px]:grid-cols-[minmax(7rem,0.8fr)_minmax(0,1.2fr)] min-[400px]:gap-4">
+      <span className="text-sm leading-snug text-muted">{label}</span>
+      <span className="min-w-0 break-words text-base font-medium leading-snug text-ink [overflow-wrap:anywhere] min-[400px]:text-right">
+        {value}
+      </span>
     </div>
   );
 }
@@ -23,32 +25,38 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
       : null;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
+    <div className="min-w-0 space-y-6">
+      <div className="flex min-w-0 flex-col items-start justify-between gap-4 min-[400px]:flex-row">
+        <div className="min-w-0">
           <p className="text-accent text-sm font-medium tracking-wide uppercase">{spec.brand}</p>
-          <h2 className="font-serif text-2xl mt-0.5">{spec.model}</h2>
-          {spec.nickname && <p className="text-muted text-sm mt-1">“{spec.nickname}”</p>}
+          <h2 className="mt-1 break-words font-serif text-[1.75rem] leading-tight [overflow-wrap:anywhere] sm:text-3xl">
+            {spec.model}
+          </h2>
+          {spec.nickname && <p className="mt-2 break-words text-base leading-snug text-muted">“{spec.nickname}”</p>}
           {spec.observedBrand && (
-            <p className="text-xs text-good mt-2">
-              Visible branding checked: <span className="font-semibold">{spec.observedBrand}</span>
+            <p className="mt-3 break-words text-sm leading-relaxed text-good">
+              Visible branding checked: <span className="font-semibold [overflow-wrap:anywhere]">{spec.observedBrand}</span>
             </p>
           )}
         </div>
-        <ConfidenceBadge value={spec.confidence} />
+        <div className="shrink-0 [&>span]:px-3 [&>span]:py-1.5 [&>span]:text-sm">
+          <ConfidenceBadge value={spec.confidence} />
+        </div>
       </div>
 
-      {spec.summary && <p className="text-sm text-muted leading-relaxed">{spec.summary}</p>}
+      {spec.summary && <p className="break-words text-base leading-relaxed text-muted [overflow-wrap:anywhere]">{spec.summary}</p>}
 
       {value && (
-        <div className="card p-4 flex items-center justify-between">
-          <span className="label">Est. market value</span>
-          <span className="font-serif text-xl text-accent-soft">{value}</span>
+        <div className="card flex min-w-0 flex-col items-start justify-between gap-2 p-4 min-[400px]:flex-row min-[400px]:items-center">
+          <span className="label text-sm">Est. market value</span>
+          <span className="min-w-0 break-words font-serif text-2xl leading-tight text-accent-soft [overflow-wrap:anywhere] min-[400px]:text-right">
+            {value}
+          </span>
         </div>
       )}
 
-      <div className="grid sm:grid-cols-2 gap-x-8">
-        <div>
+      <div className="grid min-w-0 sm:grid-cols-2 sm:gap-x-8">
+        <div className="min-w-0">
           <Row label="Reference" value={spec.referenceNumber} />
           <Row label="Movement" value={spec.movement} />
           <Row label="Caliber" value={spec.caliber} />
@@ -56,7 +64,7 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
           <Row label="Complications" value={spec.complications} />
           <Row label="Year(s)" value={spec.yearProduced} />
         </div>
-        <div>
+        <div className="min-w-0">
           <Row label="Case material" value={spec.caseMaterial} />
           <Row label="Diameter" value={spec.caseDiameterMm ? `${spec.caseDiameterMm} mm` : null} />
           <Row label="Lug-to-lug" value={spec.lugToLugMm ? `${spec.lugToLugMm} mm` : null} />
@@ -71,19 +79,19 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
 
       {spec.history && (
         <div className="pt-1">
-          <p className="label mb-2">History &amp; background</p>
-          <p className="text-sm text-muted leading-relaxed">{spec.history}</p>
+          <p className="label mb-2 text-sm">History &amp; background</p>
+          <p className="break-words text-base leading-relaxed text-muted [overflow-wrap:anywhere]">{spec.history}</p>
         </div>
       )}
 
       {spec.notableFacts && spec.notableFacts.length > 0 && (
         <div className="pt-1">
-          <p className="label mb-2">Notable facts</p>
-          <ul className="space-y-1.5">
+          <p className="label mb-3 text-sm">Notable facts</p>
+          <ul className="space-y-2.5">
             {spec.notableFacts.map((f, i) => (
-              <li key={i} className="text-sm flex gap-2">
+              <li key={i} className="flex min-w-0 gap-2.5 text-base leading-relaxed">
                 <span className="text-accent shrink-0">•</span>
-                <span className="text-muted">{f}</span>
+                <span className="min-w-0 break-words text-muted [overflow-wrap:anywhere]">{f}</span>
               </li>
             ))}
           </ul>
@@ -99,33 +107,33 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
       )}
 
       {(spec.scarcity || spec.limitedEdition || spec.productionStatus) && (
-        <div className="card p-4 space-y-2">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="label">Rarity &amp; availability</p>
-            <div className="flex gap-2">
+        <div className="card min-w-0 space-y-3 p-4">
+          <div className="flex min-w-0 flex-col items-start justify-between gap-3 min-[400px]:flex-row">
+            <p className="label text-sm">Rarity &amp; availability</p>
+            <div className="flex min-w-0 flex-wrap gap-2">
               {spec.productionStatus && (
-                <span className="text-xs px-2 py-0.5 rounded-full border border-line text-muted">
+                <span className="max-w-full break-words rounded-full border border-line px-2.5 py-1 text-sm leading-snug text-muted [overflow-wrap:anywhere]">
                   {spec.productionStatus}
                 </span>
               )}
               {spec.limitedEdition && (
-                <span className="text-xs px-2 py-0.5 rounded-full border border-accent text-accent">
+                <span className="max-w-full break-words rounded-full border border-accent px-2.5 py-1 text-sm leading-snug text-accent [overflow-wrap:anywhere]">
                   {spec.limitedEdition}
                 </span>
               )}
             </div>
           </div>
-          {spec.scarcity && <p className="text-sm text-muted leading-relaxed">{spec.scarcity}</p>}
+          {spec.scarcity && <p className="break-words text-base leading-relaxed text-muted [overflow-wrap:anywhere]">{spec.scarcity}</p>}
         </div>
       )}
 
       {spec.sources && spec.sources.length > 0 && (
-        <div className="pt-2">
-          <p className="label mb-2">Sources</p>
-          <ul className="space-y-1">
+        <div className="min-w-0 pt-2">
+          <p className="label mb-2 text-sm">Sources</p>
+          <ul className="min-w-0 space-y-2">
             {spec.sources.slice(0, 6).map((s, i) => (
-              <li key={i} className="text-xs truncate">
-                <a href={s} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+              <li key={i} className="min-w-0 text-sm leading-relaxed">
+                <a href={s} target="_blank" rel="noreferrer" className="block break-all text-accent hover:underline">
                   {s}
                 </a>
               </li>
@@ -134,7 +142,7 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
         </div>
       )}
 
-      <p className="text-xs text-muted border-t border-line/60 pt-3">
+      <p className="border-t border-line/60 pt-4 text-sm leading-relaxed text-muted">
         AI-generated from the photo and public sources — details (reference, caliber, value, rarity)
         can be inaccurate. Verify anything important before buying or insuring.
       </p>

@@ -50,22 +50,22 @@ export default function CollectionPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <div>
+      <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-end min-[400px]:justify-between gap-4">
+        <div className="min-w-0">
           <h1 className="font-serif text-3xl">{heading}</h1>
-          <p className="text-muted mt-1">{watches.length} watch{watches.length === 1 ? "" : "es"}</p>
+          <p className="text-base text-muted mt-1">{watches.length} watch{watches.length === 1 ? "" : "es"}</p>
         </div>
-        <Link href="/identify" className="btn btn-gold">+ Add watch</Link>
+        <Link href="/identify" className="btn btn-gold w-full min-[400px]:w-auto">+ Add watch</Link>
       </div>
       <div className="rule" />
 
-      <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex gap-1.5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
           {FILTERS.map((f) => (
             <button
               key={f.key}
               onClick={() => setStatus(f.key)}
-              className={`px-4 py-2.5 sm:px-3.5 sm:py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+              className={`min-h-11 px-3 py-2.5 rounded-lg text-base font-medium transition-colors border ${
                 status === f.key
                   ? "border-accent text-accent bg-surface-2"
                   : "border-line text-muted hover:text-ink"
@@ -75,18 +75,18 @@ export default function CollectionPage() {
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap gap-2 items-center">
+        <div className="grid grid-cols-1 gap-2 w-full sm:flex sm:flex-wrap sm:items-center sm:w-auto">
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search brand, model, reference…"
-            className="input max-w-xs"
+            className="input sm:max-w-xs"
           />
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
             aria-label="Sort collection"
-            className="input w-auto"
+            className="input w-full sm:w-auto"
           >
             {Object.entries(SORTS).map(([k, s]) => (
               <option key={k} value={k}>{s.label}</option>
@@ -96,18 +96,18 @@ export default function CollectionPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="card shimmer aspect-[3/4]" />
           ))}
         </div>
       ) : empty ? (
-        <div className="card p-12 text-center">
-          <p className="text-muted">No watches found.</p>
-          <Link href="/identify" className="btn btn-gold mt-4 inline-flex">Identify a watch</Link>
+        <div className="card p-6 sm:p-12 text-center">
+          <p className="text-base text-muted">No watches found.</p>
+          <Link href="/identify" className="btn btn-gold mt-4 inline-flex w-full min-[400px]:w-auto">Identify a watch</Link>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {sorted.map((w) => (
             <WatchCard key={w.id} watch={w} />
           ))}

@@ -40,66 +40,66 @@ export default function ValuationHistory({ watchId, valuations }: { watchId: str
   }
 
   return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between mb-3">
-        <p className="label">Valuation history</p>
+    <div className="card min-w-0 p-4 sm:p-5">
+      <div className="mb-4 flex flex-col items-start justify-between gap-3 min-[400px]:flex-row min-[400px]:items-center">
+        <p className="label text-sm">Valuation history</p>
         {!adding && (
-          <button onClick={() => setAdding(true)} className="btn btn-ghost text-sm py-1.5! min-h-0! no-print">
+          <button onClick={() => setAdding(true)} className="btn btn-ghost no-print min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
             + Update value
           </button>
         )}
       </div>
 
       {adding && (
-        <div className="mb-4 p-3 rounded-xl border border-line/70 bg-surface-2/40 space-y-3 no-print">
-          <div className="flex flex-wrap gap-2 items-center">
+        <div className="no-print mb-4 min-w-0 space-y-3 rounded-xl border border-line/70 bg-surface-2/40 p-4">
+          <div className="grid min-w-0 grid-cols-1 items-center gap-2 min-[400px]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
             <input
               value={low}
               onChange={(e) => setLow(e.target.value)}
               inputMode="decimal"
               placeholder="Low (USD)"
-              className="input flex-1 min-w-24"
+              className="input min-h-12 min-w-0 text-base"
             />
-            <span className="text-muted">–</span>
+            <span className="hidden text-muted min-[400px]:block">–</span>
             <input
               value={high}
               onChange={(e) => setHigh(e.target.value)}
               inputMode="decimal"
               placeholder="High (optional)"
-              className="input flex-1 min-w-24"
+              className="input min-h-12 min-w-0 text-base"
             />
           </div>
           <input
             value={source}
             onChange={(e) => setSource(e.target.value)}
             placeholder="Source (e.g. Chrono24, dealer quote)"
-            className="input"
+            className="input min-h-12 min-w-0 text-base"
           />
-          {error && <p className="text-danger text-sm">{error}</p>}
-          <div className="flex gap-2">
-            <button onClick={save} disabled={saving || !low.trim()} className="btn btn-gold text-sm">
+          {error && <p className="break-words text-[15px] leading-relaxed text-danger [overflow-wrap:anywhere]">{error}</p>}
+          <div className="flex flex-col gap-2 min-[400px]:flex-row">
+            <button onClick={save} disabled={saving || !low.trim()} className="btn btn-gold min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
               {saving ? "Saving…" : "Record value"}
             </button>
-            <button onClick={() => { setAdding(false); setError(null); }} className="btn btn-ghost text-sm">
+            <button onClick={() => { setAdding(false); setError(null); }} className="btn btn-ghost min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
               Cancel
             </button>
           </div>
-          <p className="text-xs text-muted">
+          <p className="text-sm leading-relaxed text-muted">
             Free — no AI call. Sets the watch&apos;s current value and adds a point to the portfolio chart.
           </p>
         </div>
       )}
 
       {valuations.length === 0 ? (
-        <p className="text-sm text-muted">No valuations yet. Record one from a listing or dealer quote.</p>
+        <p className="text-[15px] leading-relaxed text-muted">No valuations yet. Record one from a listing or dealer quote.</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="min-w-0 divide-y divide-line/50">
           {valuations.map((v) => (
-            <li key={v.id} className="flex justify-between text-sm">
-              <span className="text-muted">
+            <li key={v.id} className="flex min-w-0 flex-col gap-1.5 py-3 min-[400px]:flex-row min-[400px]:items-start min-[400px]:justify-between min-[400px]:gap-4">
+              <span className="min-w-0 break-words text-[15px] leading-relaxed text-muted [overflow-wrap:anywhere]">
                 {new Date(v.createdAt).toLocaleDateString()} · {v.source ?? "—"}
               </span>
-              <span className="text-accent-soft">
+              <span className="shrink-0 text-lg font-medium leading-snug text-accent-soft min-[400px]:text-right">
                 ${v.low.toLocaleString()} – ${v.high.toLocaleString()}
               </span>
             </li>

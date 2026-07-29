@@ -25,20 +25,21 @@ export default function Nav() {
     <>
       {/* Top bar */}
       <header className="sticky top-0 z-30 border-b border-line/70 backdrop-blur bg-base/70">
-        <div className="max-w-6xl mx-auto px-5 h-16 md:min-h-20 md:py-3 flex items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto px-4 h-16 md:min-h-20 md:px-5 md:py-3 flex items-center justify-between gap-2 md:gap-4">
           <Link href="/" className="flex items-center gap-2.5">
             <Logo size={30} />
             <span className="font-serif text-xl md:text-2xl tracking-wide">Caliber</span>
           </Link>
 
           {/* Desktop: full nav */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden lg:flex items-center gap-2">
             <nav className="flex items-center gap-1">
               {LINKS.map((l) => (
                 <Link
                   key={l.href}
                   href={l.href}
-                  className={`px-3.5 py-2.5 rounded-lg text-base font-medium transition-colors ${
+                  aria-current={isActive(l.href) ? "page" : undefined}
+                  className={`px-3.5 py-2.5 rounded-lg text-[1.0625rem] font-medium transition-colors ${
                     isActive(l.href) ? "text-accent bg-surface-2" : "text-muted hover:text-ink"
                   }`}
                 >
@@ -54,7 +55,7 @@ export default function Nav() {
           </div>
 
           {/* Mobile: settings plus sign out (main nav is the bottom bar) */}
-          <div className="md:hidden flex items-center gap-1">
+          <div className="lg:hidden flex items-center gap-1">
             <Link
               href="/settings"
               aria-label="Settings"
@@ -87,8 +88,8 @@ export default function Nav() {
 
       {/* Mobile bottom tab bar */}
       <nav
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-line/70 bg-base/95 backdrop-blur"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-line/70 bg-base/95 backdrop-blur"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         <div className="grid grid-cols-5">
           {TABS.map((t) => {
@@ -97,11 +98,12 @@ export default function Nav() {
               <Link
                 key={t.href}
                 href={t.href}
-                className="flex flex-col items-center justify-center gap-1 py-2.5 min-h-16"
+                aria-current={active ? "page" : undefined}
+                className="flex min-w-0 min-h-[4.75rem] flex-col items-center justify-center gap-1.5 px-0.5 py-2"
                 style={{ color: active ? "var(--color-accent)" : "var(--color-muted)" }}
               >
                 <t.Icon className="w-6 h-6" />
-                <span className="text-[11px] font-medium leading-none">{t.short}</span>
+                <span className="text-[0.9375rem] font-semibold leading-tight">{t.short}</span>
               </Link>
             );
           })}

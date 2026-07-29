@@ -1,7 +1,10 @@
 import OpenAI from "openai";
 import crypto from "node:crypto";
 import { zodTextFormat } from "openai/helpers/zod";
-import type { Response } from "openai/resources/responses/responses";
+import type {
+  Response,
+  ResponseCreateParamsNonStreaming,
+} from "openai/resources/responses/responses";
 import { WatchSpec, WatchSpecSchema, VetResult, VetResultSchema } from "./types";
 import { getApiKey } from "./settings";
 import { recordUsage } from "./usage";
@@ -132,6 +135,7 @@ export async function identifyWatch(
     include: ["web_search_call.action.sources"],
     instructions: IDENTIFY_SYSTEM,
     tools: [webSearchTool],
+    max_tool_calls: 4,
     text: { format: zodTextFormat(WatchSpecSchema, "watch_spec") },
     input: [
       {
@@ -208,6 +212,7 @@ export async function vetWatch(
     include: ["web_search_call.action.sources"],
     instructions: VET_SYSTEM,
     tools: [webSearchTool],
+    max_tool_calls: 4,
     text: { format: zodTextFormat(VetResultSchema, "vet_result") },
     input: [{ role: "user", content }],
   });
@@ -251,7 +256,11 @@ export async function chatAboutWatch(context: string, messages: ChatMessage[]): 
     };
   }
 
-  const response = await client.responses.create({
+  // OpenAI's REST API supports max_tool_calls, but the generated non-streaming
+  // request type in SDK 6.49 omits it even though the same SDK ships the field
+  // on the corresponding Responses client event. Keep the runtime cost cap and
+  // narrow the compatibility cast to this request until the SDK type catches up.
+  const chatRequest = {
     model: MODEL,
     max_output_tokens: 1400,
     reasoning: { effort: "low" },
@@ -259,8 +268,10 @@ export async function chatAboutWatch(context: string, messages: ChatMessage[]): 
     include: ["web_search_call.action.sources"],
     instructions: CHAT_SYSTEM(context),
     tools: [webSearchTool],
+    max_tool_calls: 3,
     input: messages.map((m) => ({ role: m.role, content: m.content })),
-  });
+  } as ResponseCreateParamsNonStreaming & { max_tool_calls: number };
+  const response = await client.responses.create(chatRequest);
 
   await recordUsage("chat", MODEL, response);
   const text = response.output_text.trim();
