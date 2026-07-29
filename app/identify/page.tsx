@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import UploadZone from "@/components/UploadZone";
 import SpecSheet from "@/components/SpecSheet";
 import { WatchSpec, WatchSpecSchema } from "@/lib/types";
+import { safeStoredImageUrl } from "@/lib/uploadUrl";
 
 const UNSAVED_WARNING =
   "This identification has not been saved. If you leave, the result will be lost and another analysis may cost money. Leave without saving?";
@@ -39,7 +40,7 @@ export default function IdentifyPage() {
           return;
         }
 
-        const restoredImageUrl = typeof draft.imageUrl === "string" ? draft.imageUrl : null;
+        const restoredImageUrl = safeStoredImageUrl(draft.imageUrl);
         setSpec(parsedSpec.data);
         setImageUrl(restoredImageUrl);
         setPreview(restoredImageUrl);
@@ -201,8 +202,10 @@ export default function IdentifyPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Identification failed.");
       if (requestId !== requestIdRef.current) return;
+      const savedImageUrl = safeStoredImageUrl(data.imageUrl);
+      if (!savedImageUrl) throw new Error("Caliber returned an invalid saved-photo address.");
       setSpec(data.spec);
-      setImageUrl(data.imageUrl);
+      setImageUrl(savedImageUrl);
       setCached(Boolean(data.cached));
       setRecovered(false);
     } catch (e) {
