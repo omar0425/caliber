@@ -131,29 +131,29 @@ export default function IdentificationCorrection({
 
   return (
     <div
-      className={`no-print rounded-xl border p-4 mb-5 ${
+      className={`no-print mb-5 w-full min-w-0 overflow-hidden rounded-xl border p-4 sm:p-5 ${
         legacyDemo ? "border-warn/50 bg-warn/10" : "border-line bg-surface-2/45"
       }`}
     >
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex min-w-0 flex-col items-start justify-between gap-4 min-[400px]:flex-row">
         <div className="min-w-0">
-          <p className={`font-medium ${legacyDemo ? "text-warn" : "text-ink"}`}>
+          <p className={`break-words text-lg font-medium leading-snug [overflow-wrap:anywhere] ${legacyDemo ? "text-warn" : "text-ink"}`}>
             {legacyDemo ? "Legacy demo identification detected" : "Identification look wrong?"}
           </p>
-          <p className="text-sm text-muted mt-1">
+          <p className="mt-2 break-words text-[15px] leading-relaxed text-muted [overflow-wrap:anywhere]">
             {legacyDemo
               ? "This record used sample data and did not analyze this photo. Run it again now that OpenAI is connected."
               : "Re-analyze the saved cover photo or replace the identity manually."}
           </p>
         </div>
-        <button onClick={() => setOpen((value) => !value)} className="btn btn-ghost text-sm">
+        <button onClick={() => setOpen((value) => !value)} className="btn btn-ghost min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
           {open ? "Close" : "Correct identification"}
         </button>
       </div>
 
-      {message && <p className="text-good text-sm mt-3">{message}</p>}
+      {message && <p className="mt-3 break-words text-[15px] leading-relaxed text-good [overflow-wrap:anywhere]">{message}</p>}
       {error && (
-        <p className="text-danger text-sm bg-danger/10 border border-danger/30 rounded-lg p-3 mt-3">
+        <p className="mt-3 break-words rounded-lg border border-danger/30 bg-danger/10 p-3 text-[15px] leading-relaxed text-danger [overflow-wrap:anywhere]">
           {error}
         </p>
       )}
@@ -162,8 +162,8 @@ export default function IdentificationCorrection({
         <div className="mt-5 pt-5 border-t border-line/70 space-y-6">
           <div className="space-y-3">
             <div>
-              <p className="font-medium">Preferred: re-analyze with OpenAI</p>
-              <p className="text-sm text-muted">
+              <p className="text-lg font-medium leading-snug">Preferred: re-analyze with OpenAI</p>
+              <p className="mt-1 text-[15px] leading-relaxed text-muted">
                 Uses the saved cover photo and replaces the complete spec sheet. Add a clue only if
                 you can read something the current record missed.
               </p>
@@ -173,58 +173,58 @@ export default function IdentificationCorrection({
               onChange={(event) => setHint(event.target.value)}
               maxLength={500}
               placeholder="Optional clue, e.g. “The dial clearly says BREITLING”"
-              className="input"
+              className="input min-h-12 text-base"
             />
             <button
               onClick={reanalyze}
               disabled={working !== null || !hasCoverPhoto}
-              className="btn btn-gold w-full sm:w-auto"
+              className="btn btn-gold min-h-12 w-full max-w-full text-base sm:w-auto"
             >
               {working === "ai" ? "Re-analyzing…" : "Re-analyze cover photo"}
             </button>
             {!hasCoverPhoto && (
-              <p className="text-sm text-warn">Add a cover photo before re-analyzing.</p>
+              <p className="text-[15px] leading-relaxed text-warn">Add a cover photo before re-analyzing.</p>
             )}
           </div>
 
           <div className="pt-5 border-t border-line/70 space-y-3">
             <div>
-              <p className="font-medium">Or correct the identity manually</p>
-              <p className="text-sm text-muted">
+              <p className="text-lg font-medium leading-snug">Or correct the identity manually</p>
+              <p className="mt-1 text-[15px] leading-relaxed text-muted">
                 This preserves photos and collection details, but safely clears model-specific AI
                 research that may belong to the wrong watch.
               </p>
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
-                <label className="label">Brand</label>
-                <input value={brand} onChange={(event) => setBrand(event.target.value)} className="input mt-1" />
+                <label className="label text-sm">Brand</label>
+                <input value={brand} onChange={(event) => setBrand(event.target.value)} className="input mt-1 min-h-12 text-base" />
               </div>
               <div>
-                <label className="label">Model</label>
-                <input value={model} onChange={(event) => setModel(event.target.value)} className="input mt-1" />
+                <label className="label text-sm">Model</label>
+                <input value={model} onChange={(event) => setModel(event.target.value)} className="input mt-1 min-h-12 text-base" />
               </div>
               <div>
-                <label className="label">Reference</label>
+                <label className="label text-sm">Reference</label>
                 <input
                   value={referenceNumber}
                   onChange={(event) => setReferenceNumber(event.target.value)}
-                  className="input mt-1"
+                  className="input mt-1 min-h-12 text-base"
                 />
               </div>
               <div>
-                <label className="label">Nickname</label>
-                <input value={nickname} onChange={(event) => setNickname(event.target.value)} className="input mt-1" />
+                <label className="label text-sm">Nickname</label>
+                <input value={nickname} onChange={(event) => setNickname(event.target.value)} className="input mt-1 min-h-12 text-base" />
               </div>
             </div>
             <button
               onClick={saveManualCorrection}
               disabled={working !== null || !brand.trim() || !model.trim()}
-              className="btn btn-ghost w-full sm:w-auto"
+              className="btn btn-ghost min-h-12 w-full max-w-full text-base sm:w-auto"
             >
               {working === "manual" ? "Saving…" : "Save manual correction"}
             </button>
-            <p className="text-xs text-muted">
+            <p className="text-sm leading-relaxed text-muted">
               Existing valuation-history entries remain visible as an audit trail; a successful
               re-analysis adds a new current estimate.
             </p>

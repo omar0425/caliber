@@ -48,35 +48,35 @@ export default async function LoginPage({
             </p>
             <div className="grid grid-cols-3 gap-3 pt-3">
               {["Private collection", "Secure session", "30-day sign-in"].map((item) => (
-                <div key={item} className="border-t border-accent/35 pt-3 text-sm text-muted">
+                <div key={item} className="border-t border-accent/35 pt-3 text-[0.95rem] text-muted">
                   {item}
                 </div>
               ))}
             </div>
           </div>
 
-          <p className="text-xs text-muted">Caliber · Built for collectors who care about the details.</p>
+          <p className="text-[0.95rem] text-muted">Caliber · Built for collectors who care about the details.</p>
         </div>
       </section>
 
-      <main className="relative flex min-w-0 min-h-dvh items-center justify-center px-5 py-10 sm:px-10">
+      <main className="relative flex min-w-0 min-h-dvh items-center justify-center px-3.5 py-6 min-[400px]:px-5 min-[400px]:py-8 sm:px-10 sm:py-10">
         <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center justify-center gap-3 mb-10">
+          <div className="lg:hidden flex items-center justify-center gap-3 mb-6 sm:mb-10">
             <Logo size={38} />
             <span className="font-serif text-3xl tracking-wide">Caliber</span>
           </div>
 
-          <div className="card p-7 sm:p-9 shadow-2xl shadow-black/30">
-            <p className="label text-accent! mb-2">Private access</p>
-            <h2 className="font-serif text-3xl">Welcome back</h2>
-            <p className="text-muted mt-2 mb-7">
+          <div className="card p-5 min-[400px]:p-7 sm:p-9 shadow-2xl shadow-black/30">
+            <p className="label text-[0.95rem]! text-accent! mb-2">Private access</p>
+            <h2 className="font-serif text-[2rem] leading-tight">Welcome back</h2>
+            <p className="text-base text-muted mt-2 mb-6 sm:mb-7 leading-relaxed">
               Sign in with the same Caliber username and password you already use.
             </p>
 
             {error && (
               <p
                 role="alert"
-                className="text-danger text-sm bg-danger/10 border border-danger/30 rounded-lg p-3 mb-5"
+                className="text-danger text-base bg-danger/10 border border-danger/30 rounded-lg p-3 mb-5"
               >
                 {error}
               </p>
@@ -85,7 +85,7 @@ export default async function LoginPage({
             <form action="/api/auth/login" method="post" className="space-y-5">
               <input type="hidden" name="next" value={returnTo} />
               <div>
-                <label htmlFor="user" className="label">Username</label>
+                <label htmlFor="user" className="label text-[0.95rem]!">Username</label>
                 <input
                   id="user"
                   name="user"
@@ -94,13 +94,13 @@ export default async function LoginPage({
                   autoCapitalize="none"
                   spellCheck={false}
                   required
-                  className="input mt-1.5"
+                  className="input text-lg mt-1.5"
                 />
               </div>
               <div>
-                <div className="flex items-center justify-between gap-3">
-                  <label htmlFor="password" className="label">Password</label>
-                  <span className="text-xs text-muted">Stored by your password manager</span>
+                <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-center min-[400px]:justify-between gap-1 min-[400px]:gap-3">
+                  <label htmlFor="password" className="label text-[0.95rem]!">Password</label>
+                  <span className="text-[0.95rem] text-muted">Stored by your password manager</span>
                 </div>
                 <input
                   id="password"
@@ -108,7 +108,7 @@ export default async function LoginPage({
                   type="password"
                   autoComplete="current-password"
                   required
-                  className="input mt-1.5"
+                  className="input text-lg mt-1.5"
                 />
               </div>
               <button type="submit" className="btn btn-gold w-full">
@@ -116,7 +116,7 @@ export default async function LoginPage({
               </button>
             </form>
 
-            <p className="text-xs text-muted text-center mt-6">
+            <p className="text-[0.95rem] text-muted text-center mt-6 leading-relaxed">
               Your session is signed, HTTP-only, and stays active for 30 days.
             </p>
           </div>

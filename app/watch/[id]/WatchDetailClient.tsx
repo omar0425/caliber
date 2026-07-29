@@ -169,34 +169,34 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
     // On mobile the two columns flatten into one flow (max-lg:contents) and each
     // card is explicitly ordered so the spec sheet appears right after the photo —
     // what the watch IS comes before its photo gallery and paperwork.
-    <div className="grid lg:grid-cols-[minmax(0,1fr)_1.1fr] gap-4 lg:gap-8 items-start">
+    <div className="grid w-full min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-8">
       {/* Image + valuation history */}
-      <div className="space-y-4 max-lg:contents">
-        <div className="max-lg:order-1 card overflow-hidden aspect-square bg-surface-2 flex items-center justify-center">
+      <div className="min-w-0 space-y-4 max-lg:contents">
+        <div className="card flex aspect-square w-full min-w-0 items-center justify-center overflow-hidden bg-surface-2 max-lg:order-1">
           {watch.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={watch.imageUrl} alt={`${watch.brand} ${watch.model}`} className="w-full h-full object-cover" />
           ) : (
-            <span className="text-muted">No photo</span>
+            <span className="text-base text-muted">No photo</span>
           )}
         </div>
 
-        <div className="max-lg:order-4">
+        <div className="min-w-0 max-lg:order-4">
           <PhotoGallery watchId={watch.id} photos={watch.photos} coverUrl={watch.imageUrl} />
         </div>
 
-        <div className="max-lg:order-5">
+        <div className="min-w-0 max-lg:order-5">
           <DocumentVault watchId={watch.id} documents={watch.documents} />
         </div>
 
-        <div className="max-lg:order-6">
+        <div className="min-w-0 max-lg:order-6">
           <ValuationHistory watchId={watch.id} valuations={watch.valuations} />
         </div>
       </div>
 
       {/* Specs + collection meta */}
-      <div className="space-y-6 max-lg:contents">
-        <div className="max-lg:order-2 card p-6">
+      <div className="min-w-0 space-y-6 max-lg:contents">
+        <div className="card min-w-0 p-4 sm:p-6 max-lg:order-2">
           <IdentificationCorrection
             watchId={watch.id}
             hasCoverPhoto={Boolean(watch.imageUrl)}
@@ -206,45 +206,45 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
           <SpecSheet spec={spec} />
         </div>
 
-        <div className="max-lg:order-3 card p-6 space-y-4">
-          <h3 className="font-serif text-xl">Collection details</h3>
+        <div className="card min-w-0 space-y-5 p-4 sm:p-6 max-lg:order-3">
+          <h3 className="font-serif text-2xl">Collection details</h3>
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="label">Status</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)} className="input mt-1">
+              <label className="label text-sm">Status</label>
+              <select value={status} onChange={(e) => setStatus(e.target.value)} className="input mt-1 min-h-12 text-base">
                 <option value="owned">Owned</option>
                 <option value="wishlist">Wishlist</option>
                 <option value="watching">Watching</option>
               </select>
             </div>
             <div>
-              <label className="label">Condition</label>
-              <input value={condition} onChange={(e) => setCondition(e.target.value)} placeholder="e.g. Mint, full set" className="input mt-1" />
+              <label className="label text-sm">Condition</label>
+              <input value={condition} onChange={(e) => setCondition(e.target.value)} placeholder="e.g. Mint, full set" className="input mt-1 min-h-12 text-base" />
             </div>
             <div>
-              <label className="label">Purchase price (USD)</label>
-              <input value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} inputMode="decimal" placeholder="e.g. 8500" className="input mt-1" />
+              <label className="label text-sm">Purchase price (USD)</label>
+              <input value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} inputMode="decimal" placeholder="e.g. 8500" className="input mt-1 min-h-12 text-base" />
             </div>
             <div>
-              <label className="label">Owner</label>
-              <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="e.g. mike@example.com" className="input mt-1" />
+              <label className="label text-sm">Owner</label>
+              <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="e.g. mike@example.com" className="input mt-1 min-h-12 text-base" />
             </div>
           </div>
           <div>
-            <label className="label">Notes</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Service history, provenance, box & papers…" className="input mt-1 resize-y" />
+            <label className="label text-sm">Notes</label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Service history, provenance, box & papers…" className="input mt-1 resize-y text-base" />
           </div>
-          <div className="flex items-center gap-3 no-print">
-            <button onClick={save} disabled={saving} className="btn btn-gold">
+          <div className="no-print flex flex-col gap-3 min-[400px]:flex-row min-[400px]:items-center">
+            <button onClick={save} disabled={saving} className="btn btn-gold min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
               {saving ? "Saving…" : saved ? "Saved ✓" : "Save details"}
             </button>
-            <button onClick={remove} disabled={deleting} className="btn btn-ghost text-danger! border-danger/40!">
+            <button onClick={remove} disabled={deleting} className="btn btn-ghost min-h-12 w-full max-w-full text-base text-danger! border-danger/40! min-[400px]:w-auto">
               {deleting ? "Removing…" : "Remove"}
             </button>
           </div>
         </div>
 
-        <div className="max-lg:order-7">
+        <div className="min-w-0 max-lg:order-7">
           <ServiceLog
             watchId={watch.id}
             records={watch.serviceRecords}
@@ -254,7 +254,7 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
           />
         </div>
 
-        <div className="max-lg:order-8 no-print">
+        <div className="no-print min-w-0 max-lg:order-8">
           <WatchChat watchId={watch.id} watchName={`${watch.brand} ${watch.model}`} />
         </div>
       </div>

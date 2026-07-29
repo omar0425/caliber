@@ -30,8 +30,10 @@ export default async function WatchPage({
   return (
     <div className="space-y-6">
       {print === "1" && <AutoPrint />}
-      <div className="flex items-center justify-between gap-4 no-print">
-        <Link href="/collection" className="text-sm text-muted hover:text-ink">← Back to collection</Link>
+      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between no-print">
+        <Link href="/collection" className="inline-flex min-h-12 items-center text-base font-medium text-muted hover:text-ink">
+          ← Back to collection
+        </Link>
         <PrintButton />
       </div>
       <WatchDetailClient

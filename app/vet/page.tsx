@@ -62,7 +62,7 @@ export default function VetPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-serif text-3xl">Vet a purchase</h1>
-        <p className="text-muted mt-1">
+        <p className="text-base text-muted mt-1 leading-relaxed">
           Thinking of buying? Upload the seller&apos;s photo and paste the listing. Caliber flags
           fakes, franken parts, and prices that are too good to be true.
         </p>
@@ -73,7 +73,9 @@ export default function VetPage() {
         <div className="space-y-4">
           <UploadZone onFile={pickFile} preview={preview} hint="Drop the listing's photo" />
           <div>
-            <label className="label">Listing details (optional but recommended)</label>
+            <label className="text-[0.95rem] font-semibold text-muted">
+              Listing details (optional but recommended)
+            </label>
             <textarea
               value={listingText}
               onChange={(e) => setListingText(e.target.value)}
@@ -86,57 +88,57 @@ export default function VetPage() {
             {loading ? "Analyzing…" : "Vet this watch"}
           </button>
           {error && (
-            <p className="text-danger text-sm bg-danger/10 border border-danger/30 rounded-lg p-3">{error}</p>
+            <p className="text-danger text-base bg-danger/10 border border-danger/30 rounded-lg p-3">{error}</p>
           )}
         </div>
 
-        <div className="card p-6 min-h-64">
+        <div className="card p-4 sm:p-6 min-h-64 min-w-0">
           {loading && (
             <div className="space-y-3">
               <div className="shimmer h-6 w-2/3 rounded bg-surface-2" />
               <div className="shimmer h-20 w-full rounded bg-surface-2" />
-              <p className="text-muted text-sm">Comparing against reference details & market data…</p>
+              <p className="text-muted text-base">Comparing against reference details & market data…</p>
             </div>
           )}
           {!loading && !result && (
-            <div className="h-full flex items-center justify-center text-center text-muted text-sm">
+            <div className="h-full flex items-center justify-center text-center text-muted text-base">
               Your authenticity report will appear here.
             </div>
           )}
           {result && verdict && (
             <div className="space-y-5">
               {cached && (
-                <p className="text-good text-xs bg-good/10 border border-good/30 rounded-lg p-2.5">
+                <p className="text-good text-base bg-good/10 border border-good/30 rounded-lg p-3">
                   ✓ Loaded from a previous check of this exact photo and listing — no new charge.
                 </p>
               )}
               <div>
                 {(result.brand || result.model) && (
-                  <p className="text-accent text-sm uppercase tracking-wide">
+                  <p className="text-accent text-base uppercase tracking-wide break-words">
                     {result.brand} {result.model} {result.referenceNumber ? `· ${result.referenceNumber}` : ""}
                   </p>
                 )}
-                <div className="flex items-center gap-3 mt-2">
+                <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-center gap-1 min-[400px]:gap-3 mt-2">
                   <span className="font-serif text-2xl" style={{ color: verdict.color }}>
                     {verdict.label}
                   </span>
-                  <span className="text-xs text-muted">{result.confidence}% confidence</span>
+                  <span className="text-base text-muted">{result.confidence}% confidence</span>
                 </div>
               </div>
 
-              <p className="text-sm text-muted leading-relaxed">{result.summary}</p>
+              <p className="text-base text-muted leading-relaxed">{result.summary}</p>
 
               {(result.estValueLow || result.fairPriceNote) && (
                 <div className="card p-4 space-y-1">
                   {result.estValueLow && result.estValueHigh && (
-                    <div className="flex justify-between">
-                      <span className="label">Fair market range</span>
-                      <span className="text-accent-soft">
+                    <div className="flex flex-col min-[400px]:flex-row min-[400px]:justify-between gap-1 min-[400px]:gap-3">
+                      <span className="text-[0.95rem] font-semibold text-muted">Fair market range</span>
+                      <span className="text-base font-medium text-accent-soft break-words">
                         ${result.estValueLow.toLocaleString()} – ${result.estValueHigh.toLocaleString()}
                       </span>
                     </div>
                   )}
-                  {result.fairPriceNote && <p className="text-sm text-muted">{result.fairPriceNote}</p>}
+                  {result.fairPriceNote && <p className="text-base text-muted leading-relaxed">{result.fairPriceNote}</p>}
                 </div>
               )}
 
@@ -146,8 +148,8 @@ export default function VetPage() {
                   <div key={i} className="flex gap-3 p-3 rounded-lg bg-surface-2 border border-line/60">
                     <span className="mt-1.5 w-2 h-2 rounded-full shrink-0" style={{ background: SEV[f.severity] }} />
                     <div>
-                      <p className="text-sm font-medium">{f.title}</p>
-                      <p className="text-sm text-muted">{f.detail}</p>
+                      <p className="text-base font-semibold">{f.title}</p>
+                      <p className="text-base text-muted leading-relaxed">{f.detail}</p>
                     </div>
                   </div>
                 ))}
@@ -158,7 +160,7 @@ export default function VetPage() {
                   <p className="label mb-2">Sources</p>
                   <ul className="space-y-1">
                     {result.sources.slice(0, 6).map((source) => (
-                      <li key={source} className="text-xs truncate">
+                      <li key={source} className="text-[0.95rem] break-all">
                         <a
                           href={source}
                           target="_blank"
@@ -173,7 +175,7 @@ export default function VetPage() {
                 </div>
               )}
 
-              <p className="text-xs text-muted border-t border-line/60 pt-3">
+              <p className="text-[0.95rem] text-muted border-t border-line/60 pt-3 leading-relaxed">
                 This is AI-assisted analysis and can be wrong — photos alone can&apos;t certify
                 authenticity. For high-value pieces, always confirm papers, service history, and
                 inspect in person or via a trusted dealer.
