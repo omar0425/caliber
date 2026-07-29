@@ -25,6 +25,7 @@ export type SavedImage = {
   base64: string;
   mediaType: string;
   publicUrl: string; // e.g. /api/uploads/abc.jpg
+  name: string; // stored filename (content-hash based)
   hash: string; // sha256 of the image bytes (for result caching)
 };
 
@@ -65,12 +66,52 @@ export async function saveUploadedImage(file: File): Promise<SavedImage> {
 
   const { bytes, mediaType, ext } = await compressImage(original, rawType);
   await fs.mkdir(UPLOAD_DIR, { recursive: true });
-  const name = `${crypto.randomBytes(10).toString("hex")}.${ext}`;
+  // Name the file by its ORIGINAL content hash: re-uploading the same photo
+  // overwrites the same file (no duplicates), and the analyze-by-name routes
+  // can recover the cache key straight from the filename.
+  const name = `${hash}.${ext}`;
   await fs.writeFile(path.join(UPLOAD_DIR, name), bytes);
   return {
     base64: bytes.toString("base64"),
     mediaType,
     publicUrl: urlFor(name),
+    name,
+    hash,
+  };
+}
+
+const MEDIA_TYPE_BY_EXT: Record<string, string> = {
+  jpg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+};
+
+export type StoredImage = {
+  base64: string;
+  mediaType: string;
+  publicUrl: string;
+  name: string;
+  hash: string;
+};
+
+// Load a previously uploaded image back from UPLOAD_DIR by its stored name
+// (strictly validated — hex filename only, no path traversal). Used by the
+// analyze routes when the photo was uploaded ahead of time (e.g. for the
+// Google Lens pre-check). The filename stem IS the original-bytes hash, so
+// cache keys line up with images analyzed the old single-request way.
+export async function loadStoredImage(name: string): Promise<StoredImage> {
+  if (!/^[a-f0-9]{16,}\.(jpg|png|webp|gif)$/.test(name)) {
+    throw new Error("Invalid image reference.");
+  }
+  const bytes = await fs.readFile(path.join(UPLOAD_DIR, name));
+  const [stem, ext] = name.split(".");
+  const hash = stem.length === 64 ? stem : crypto.createHash("sha256").update(bytes).digest("hex");
+  return {
+    base64: bytes.toString("base64"),
+    mediaType: MEDIA_TYPE_BY_EXT[ext] ?? "image/jpeg",
+    publicUrl: urlFor(name),
+    name,
     hash,
   };
 }

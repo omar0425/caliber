@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import UploadZone from "@/components/UploadZone";
 import SpecSheet from "@/components/SpecSheet";
+import LensButton from "@/components/LensButton";
 import { WatchSpec } from "@/lib/types";
 
 export default function IdentifyPage() {
   const router = useRouter();
-  const [file, setFile] = useState<File | null>(null);
+  const [uploadName, setUploadName] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [spec, setSpec] = useState<WatchSpec | null>(null);
@@ -19,22 +21,42 @@ export default function IdentifyPage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("owned");
 
-  function pickFile(f: File) {
-    setFile(f);
+  // Upload immediately on selection (no AI call) so the photo has a public
+  // URL — that enables the free Google Lens pre-check before analyzing.
+  async function pickFile(f: File) {
     setPreview(URL.createObjectURL(f));
     setSpec(null);
     setError(null);
+    setUploadName(null);
+    setImageUrl(null);
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("image", f);
+      const res = await fetch("/api/uploads", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed.");
+      setUploadName(data.name);
+      setImageUrl(data.imageUrl);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed.");
+      setPreview(null);
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function analyze() {
-    if (!file) return;
+    if (!uploadName) return;
     setLoading(true);
     setError(null);
     setSpec(null);
     try {
-      const form = new FormData();
-      form.append("image", file);
-      const res = await fetch("/api/identify", { method: "POST", body: form });
+      const res = await fetch("/api/identify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: uploadName }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Identification failed.");
       setSpec(data.spec);
@@ -80,8 +102,9 @@ export default function IdentifyPage() {
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4">
           <UploadZone onFile={pickFile} preview={preview} />
-          <button onClick={analyze} disabled={!file || loading} className="btn btn-gold w-full">
-            {loading ? "Analyzing…" : "Analyze photo"}
+          <LensButton imageUrl={imageUrl} uploading={uploading} />
+          <button onClick={analyze} disabled={!uploadName || uploading || loading} className="btn btn-gold w-full">
+            {loading ? "Analyzing…" : uploading ? "Uploading…" : "Analyze photo"}
           </button>
           {error && (
             <p className="text-danger text-sm bg-danger/10 border border-danger/30 rounded-lg p-3">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import UploadZone from "@/components/UploadZone";
+import LensButton from "@/components/LensButton";
 import { VetResult } from "@/lib/types";
 
 const VERDICT: Record<string, { label: string; color: string }> = {
@@ -18,7 +19,9 @@ const SEV: Record<string, string> = {
 };
 
 export default function VetPage() {
-  const [file, setFile] = useState<File | null>(null);
+  const [uploadName, setUploadName] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [listingText, setListingText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,14 +30,34 @@ export default function VetPage() {
   const [demoMode, setDemoMode] = useState(false);
   const [cached, setCached] = useState(false);
 
-  function pickFile(f: File) {
-    setFile(f);
+  // Upload on selection so the seller's photo can be checked on Google Lens
+  // before any AI call — Lens often reveals the same photo reused across other
+  // listings, a classic stolen-photo scam tell.
+  async function pickFile(f: File) {
     setPreview(URL.createObjectURL(f));
     setResult(null);
+    setError(null);
+    setUploadName(null);
+    setImageUrl(null);
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("image", f);
+      const res = await fetch("/api/uploads", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed.");
+      setUploadName(data.name);
+      setImageUrl(data.imageUrl);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed.");
+      setPreview(null);
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function run() {
-    if (!file && !listingText.trim()) {
+    if (!uploadName && !listingText.trim()) {
       setError("Add a photo and/or paste the listing details.");
       return;
     }
@@ -42,10 +65,11 @@ export default function VetPage() {
     setError(null);
     setResult(null);
     try {
-      const form = new FormData();
-      if (file) form.append("image", file);
-      form.append("listingText", listingText);
-      const res = await fetch("/api/vet", { method: "POST", body: form });
+      const res = await fetch("/api/vet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: uploadName ?? undefined, listingText }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Vetting failed.");
       setResult(data.result);
@@ -74,6 +98,7 @@ export default function VetPage() {
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4">
           <UploadZone onFile={pickFile} preview={preview} hint="Drop the listing's photo" />
+          <LensButton imageUrl={imageUrl} uploading={uploading} />
           <div>
             <label className="label">Listing details (optional but recommended)</label>
             <textarea
@@ -84,8 +109,8 @@ export default function VetPage() {
               className="input mt-1 resize-y"
             />
           </div>
-          <button onClick={run} disabled={loading} className="btn btn-gold w-full">
-            {loading ? "Analyzing…" : "Vet this watch"}
+          <button onClick={run} disabled={loading || uploading} className="btn btn-gold w-full">
+            {loading ? "Analyzing…" : uploading ? "Uploading…" : "Vet this watch"}
           </button>
           {error && (
             <p className="text-danger text-sm bg-danger/10 border border-danger/30 rounded-lg p-3">{error}</p>

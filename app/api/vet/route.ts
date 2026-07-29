@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { vetWatch, aiEnabled, interpretAiError } from "@/lib/ai";
-import { saveUploadedImage } from "@/lib/upload";
+import { saveUploadedImage, loadStoredImage } from "@/lib/upload";
 import { getCached, setCached, hashInputs } from "@/lib/aiCache";
 import { VetResult } from "@/lib/types";
 
@@ -9,11 +9,23 @@ export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
   try {
-    const form = await req.formData();
-    const file = form.get("image");
-    const listingText = String(form.get("listingText") ?? "");
+    // JSON {name, listingText} references a pre-uploaded photo (Lens pre-check
+    // flow); multipart FormData with the file is the original flow.
+    let file: File | null = null;
+    let preUploadedName: string | null = null;
+    let listingText = "";
+    if (req.headers.get("content-type")?.includes("application/json")) {
+      const body = (await req.json()) as { name?: unknown; listingText?: unknown };
+      preUploadedName = typeof body.name === "string" ? body.name : null;
+      listingText = typeof body.listingText === "string" ? body.listingText : "";
+    } else {
+      const form = await req.formData();
+      const f = form.get("image");
+      file = f instanceof File ? f : null;
+      listingText = String(form.get("listingText") ?? "");
+    }
 
-    if (!(file instanceof File) && !listingText.trim()) {
+    if (!file && !preUploadedName && !listingText.trim()) {
       return NextResponse.json(
         { error: "Provide a photo and/or listing details to vet." },
         { status: 400 }
@@ -23,8 +35,8 @@ export async function POST(req: NextRequest) {
     let imageUrl: string | null = null;
     let imagePayload = null as { base64: string; mediaType: string } | null;
     let imageHash = "";
-    if (file instanceof File) {
-      const saved = await saveUploadedImage(file);
+    if (file || preUploadedName) {
+      const saved = file ? await saveUploadedImage(file) : await loadStoredImage(preUploadedName!);
       imageUrl = saved.publicUrl;
       imagePayload = { base64: saved.base64, mediaType: saved.mediaType };
       imageHash = saved.hash;
