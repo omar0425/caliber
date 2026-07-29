@@ -5,6 +5,7 @@ import {
   SESSION_COOKIE,
   verifySessionToken,
 } from "./lib/auth";
+import { verifySignedUploadRequest } from "./lib/signedUrl";
 
 const PUBLIC_PATHS = new Set([
   "/api/health",
@@ -28,6 +29,24 @@ export function proxy(req: NextRequest) {
   }
   if (PUBLIC_PATHS.has(req.nextUrl.pathname)) return NextResponse.next();
   if (sessionAuthenticated) return NextResponse.next();
+
+  // Signed image URLs: time-limited, read-only access to a single uploaded
+  // image so external fetchers (the Google Lens pre-check) can read the photo
+  // without a session. The signature covers the exact filename and expiry.
+  const signedUpload = req.nextUrl.pathname.match(
+    /^\/api\/uploads\/([a-f0-9]{16,}\.(?:jpg|png|webp|gif))$/
+  );
+  if (
+    signedUpload &&
+    ["GET", "HEAD"].includes(req.method) &&
+    verifySignedUploadRequest(
+      signedUpload[1],
+      req.nextUrl.searchParams.get("exp"),
+      req.nextUrl.searchParams.get("sig")
+    )
+  ) {
+    return NextResponse.next();
+  }
 
   if (req.nextUrl.pathname.startsWith("/api/") || !["GET", "HEAD"].includes(req.method)) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });

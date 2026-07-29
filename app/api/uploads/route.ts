@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prepareUploadedImage, persistPreparedImageByHash } from "@/lib/upload";
 import { enforceContentLength, enforceContentType, RequestError } from "@/lib/security";
+import { signedUploadPath } from "@/lib/signedUrl";
 
 export const runtime = "nodejs";
 
@@ -19,7 +20,13 @@ export async function POST(req: NextRequest) {
     }
     const prepared = await prepareUploadedImage(file);
     const saved = await persistPreparedImageByHash(prepared);
-    return NextResponse.json({ imageUrl: saved.publicUrl, name: saved.name }, { status: 201 });
+    // lensUrl is a short-lived signed link Google's servers can fetch without
+    // a session — the Lens pre-check needs it because the auth proxy walls
+    // off the plain imageUrl.
+    return NextResponse.json(
+      { imageUrl: saved.publicUrl, name: saved.name, lensUrl: signedUploadPath(saved.name) },
+      { status: 201 }
+    );
   } catch (err) {
     console.error("upload error", err);
     return NextResponse.json(

@@ -20,7 +20,7 @@ const SEV: Record<string, string> = {
 
 export default function VetPage() {
   const [uploadName, setUploadName] = useState<string | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [lensUrl, setLensUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [listingText, setListingText] = useState("");
@@ -37,7 +37,7 @@ export default function VetPage() {
     setResult(null);
     setError(null);
     setUploadName(null);
-    setImageUrl(null);
+    setLensUrl(null);
     setUploading(true);
     try {
       const form = new FormData();
@@ -46,7 +46,7 @@ export default function VetPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload failed.");
       setUploadName(data.name);
-      setImageUrl(data.imageUrl);
+      setLensUrl(typeof data.lensUrl === "string" && data.lensUrl.startsWith("/api/uploads/") ? data.lensUrl : null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed.");
       setPreview(null);
@@ -96,7 +96,7 @@ export default function VetPage() {
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4">
           <UploadZone onFile={pickFile} preview={preview} hint="Drop the listing's photo" />
-          <LensButton imageUrl={imageUrl} uploading={uploading} />
+          <LensButton name={uploadName} imagePath={lensUrl} uploading={uploading} />
           <div>
             <label className="text-[0.95rem] font-semibold text-muted">
               Listing details (optional but recommended)
