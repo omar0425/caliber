@@ -26,10 +26,13 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
 
   return (
     <div className="min-w-0 space-y-6">
-      <div className="flex min-w-0 flex-col items-start justify-between gap-4 min-[400px]:flex-row">
+      {/* Stacked below sm: on phones the confidence badge otherwise pins the
+          title into a ~40% column, wrapping one word per line and splitting
+          words mid-letter ("Wristwatc / h"). */}
+      <div className="flex min-w-0 flex-col items-start justify-between gap-3 sm:flex-row sm:gap-4">
         <div className="min-w-0">
           <p className="text-accent text-sm font-medium tracking-wide uppercase">{spec.brand}</p>
-          <h2 className="mt-1 break-words font-serif text-[1.75rem] leading-tight [overflow-wrap:anywhere] sm:text-3xl">
+          <h2 className="mt-1 break-words font-serif text-[1.75rem] leading-tight sm:text-3xl">
             {spec.model}
           </h2>
           {spec.nickname && <p className="mt-2 break-words text-base leading-snug text-muted">“{spec.nickname}”</p>}
