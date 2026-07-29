@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import UploadZone from "@/components/UploadZone";
 import SpecSheet from "@/components/SpecSheet";
+import LensButton from "@/components/LensButton";
 import { WatchSpec, WatchSpecSchema } from "@/lib/types";
 import { safeStoredImageUrl } from "@/lib/uploadUrl";
 
@@ -15,6 +16,9 @@ export default function IdentifyPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [uploadName, setUploadName] = useState<string | null>(null);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [spec, setSpec] = useState<WatchSpec | null>(null);
@@ -170,7 +174,7 @@ export default function IdentifyPage() {
     ) {
       return;
     }
-    requestIdRef.current += 1;
+    const requestId = ++requestIdRef.current;
     setFile(f);
     setPreview(URL.createObjectURL(f));
     setSpec(null);
@@ -179,6 +183,30 @@ export default function IdentifyPage() {
     setRecovered(false);
     setError(null);
     window.sessionStorage.removeItem(IDENTIFY_DRAFT_KEY);
+
+    // Pre-upload right away (no AI call) so the photo has a public URL — that
+    // powers the free Google Lens pre-check before any tokens are spent. If
+    // this fails, analyze() falls back to sending the file directly.
+    setUploadName(null);
+    setUploadedUrl(null);
+    setUploading(true);
+    void (async () => {
+      try {
+        const form = new FormData();
+        form.append("image", f);
+        const res = await fetch("/api/uploads", { method: "POST", body: form });
+        const data = await res.json();
+        if (requestId !== requestIdRef.current) return;
+        if (res.ok) {
+          setUploadName(typeof data.name === "string" ? data.name : null);
+          setUploadedUrl(safeStoredImageUrl(data.imageUrl));
+        }
+      } catch {
+        /* pre-upload is best-effort — analyze() still works via the file */
+      } finally {
+        if (requestId === requestIdRef.current) setUploading(false);
+      }
+    })();
   }
 
   async function analyze() {
@@ -195,10 +223,21 @@ export default function IdentifyPage() {
     setLoading(true);
     setError(null);
     try {
-      const form = new FormData();
-      form.append("image", file);
-      if (hint.trim()) form.append("hint", hint.trim());
-      const res = await fetch("/api/identify", { method: "POST", body: form });
+      // Prefer referencing the pre-uploaded photo (uploaded once, already on
+      // disk); fall back to sending the file if the pre-upload didn't succeed.
+      let res: Response;
+      if (uploadName) {
+        res = await fetch("/api/identify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: uploadName, hint: hint.trim() || undefined }),
+        });
+      } else {
+        const form = new FormData();
+        form.append("image", file);
+        if (hint.trim()) form.append("hint", hint.trim());
+        res = await fetch("/api/identify", { method: "POST", body: form });
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Identification failed.");
       if (requestId !== requestIdRef.current) return;
@@ -250,6 +289,7 @@ export default function IdentifyPage() {
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4">
           <UploadZone onFile={pickFile} preview={preview} disabled={loading || saving} />
+          <LensButton imageUrl={uploadedUrl} uploading={uploading} />
           <div className="card p-4 space-y-2">
             <label htmlFor="identification-hint" className="text-base font-semibold text-ink">
               Help Caliber identify it

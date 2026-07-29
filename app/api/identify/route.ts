@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { identifyWatch, aiEnabled, interpretAiError } from "@/lib/ai";
 import {
   deleteStoredFile,
+  loadPreUploadedImage,
   persistPreparedImage,
   prepareUploadedImage,
 } from "@/lib/upload";
@@ -20,24 +21,55 @@ import { findBrandConflict } from "@/lib/identificationQuality";
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
+// The image arrives one of two ways:
+//  • JSON {name, hint} referencing a photo already stored via POST /api/uploads
+//    (the Google Lens pre-check flow) — never deleted on failure, so the user
+//    can retry; the orphan-TTL cleanup reaps it if abandoned.
+//  • multipart FormData with the file itself (the original flow) — persisted
+//    just before the paid call and deleted again if that call fails.
+type ImageSource = {
+  base64: string;
+  mediaType: string;
+  hash: string;
+  publicUrl: string | null; // set when the photo is already persisted
+  persist: (() => Promise<string>) | null; // multipart flow: persist on demand
+};
+
 export async function POST(req: NextRequest) {
-  let savedUrl: string | null = null;
+  let cleanupUrl: string | null = null;
   try {
-    enforceContentLength(req, 11 * 1024 * 1024);
-    enforceContentType(req, "multipart/form-data");
-    const form = await req.formData();
-    const file = form.get("image");
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: "No image uploaded." }, { status: 400 });
+    let hint = "";
+    let source: ImageSource;
+
+    if (req.headers.get("content-type")?.includes("application/json")) {
+      enforceContentLength(req, 64 * 1024);
+      const body = (await req.json()) as { name?: unknown; hint?: unknown };
+      hint = typeof body.hint === "string" ? body.hint.trim().slice(0, 500) : "";
+      const stored = await loadPreUploadedImage(body.name);
+      source = { ...stored, persist: null };
+    } else {
+      enforceContentLength(req, 11 * 1024 * 1024);
+      enforceContentType(req, "multipart/form-data");
+      const form = await req.formData();
+      const file = form.get("image");
+      if (!(file instanceof File)) {
+        return NextResponse.json({ error: "No image uploaded." }, { status: 400 });
+      }
+      const hintValue = form.get("hint");
+      hint = typeof hintValue === "string" ? hintValue.trim().slice(0, 500) : "";
+      const prepared = await prepareUploadedImage(file);
+      source = {
+        base64: prepared.base64,
+        mediaType: prepared.mediaType,
+        hash: prepared.hash,
+        publicUrl: null,
+        persist: async () => (await persistPreparedImage(prepared)).publicUrl,
+      };
     }
-    const hintValue = form.get("hint");
-    const hint = typeof hintValue === "string" ? hintValue.trim().slice(0, 500) : "";
     enforceAiRateLimit(req);
 
-    const prepared = await prepareUploadedImage(file);
-
-    // If this exact image was analyzed before, reuse the stored result — no new charge.
-    const key = cacheKey("identify", identifyInputHash(prepared.hash, hint));
+    // If this exact image (+hint) was analyzed before, reuse the stored result — no new charge.
+    const key = cacheKey("identify", identifyInputHash(source.hash, hint));
     const cachedResult = WatchSpecSchema.safeParse(await getCached<unknown>(key));
     if (cachedResult.success) {
       const conflict = findBrandConflict(
@@ -50,14 +82,13 @@ export async function POST(req: NextRequest) {
           422
         );
       }
-      const saved = await persistPreparedImage(prepared);
-      savedUrl = saved.publicUrl;
+      const imageUrl = source.publicUrl ?? (await source.persist!());
       return NextResponse.json({
         spec: {
           ...cachedResult.data,
           sources: normalizeHttpSources(cachedResult.data.sources),
         },
-        imageUrl: saved.publicUrl,
+        imageUrl,
         cached: true,
       });
     }
@@ -72,11 +103,15 @@ export async function POST(req: NextRequest) {
     await enforceAiBudget();
 
     // Persist before making a paid call so a disk failure cannot waste an
-    // analysis. The catch block removes this file if the AI request fails.
-    const saved = await persistPreparedImage(prepared);
-    savedUrl = saved.publicUrl;
+    // analysis. Only multipart-flow files are cleaned up on failure — a
+    // pre-uploaded photo must survive for retries and the Lens pre-check.
+    let imageUrl = source.publicUrl;
+    if (!imageUrl) {
+      imageUrl = await source.persist!();
+      cleanupUrl = imageUrl;
+    }
     const spec = await identifyWatch(
-      { base64: saved.base64, mediaType: saved.mediaType },
+      { base64: source.base64, mediaType: source.mediaType },
       hint
     );
     const conflict = findBrandConflict(spec.brand, spec.observedBrand);
@@ -94,14 +129,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       spec,
-      imageUrl: saved.publicUrl,
+      imageUrl,
       cached: false,
     });
   } catch (err) {
     console.error("identify error", err);
-    if (savedUrl) {
+    if (cleanupUrl) {
       try {
-        await deleteStoredFile(savedUrl);
+        await deleteStoredFile(cleanupUrl);
       } catch (cleanupError) {
         console.error("identify upload cleanup failed", cleanupError);
       }

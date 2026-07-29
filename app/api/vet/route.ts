@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { vetWatch, aiEnabled, interpretAiError } from "@/lib/ai";
-import { prepareUploadedImage } from "@/lib/upload";
+import { loadPreUploadedImage, prepareUploadedImage } from "@/lib/upload";
 import { cacheKey, getCached, setCached, hashInputs } from "@/lib/aiCache";
 import {
   enforceAiBudget,
@@ -17,13 +17,27 @@ export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
   try {
-    enforceContentLength(req, 11 * 1024 * 1024);
-    enforceContentType(req, "multipart/form-data");
-    const form = await req.formData();
-    const file = form.get("image");
-    const listingText = String(form.get("listingText") ?? "").trim();
+    // JSON {name, listingText} references a photo pre-uploaded via
+    // POST /api/uploads (the Google Lens pre-check flow); multipart FormData
+    // with the file itself is the original flow.
+    let file: File | null = null;
+    let preUploadedName: string | null = null;
+    let listingText = "";
+    if (req.headers.get("content-type")?.includes("application/json")) {
+      enforceContentLength(req, 64 * 1024);
+      const body = (await req.json()) as { name?: unknown; listingText?: unknown };
+      preUploadedName = typeof body.name === "string" ? body.name : null;
+      listingText = typeof body.listingText === "string" ? body.listingText.trim() : "";
+    } else {
+      enforceContentLength(req, 11 * 1024 * 1024);
+      enforceContentType(req, "multipart/form-data");
+      const form = await req.formData();
+      const f = form.get("image");
+      file = f instanceof File ? f : null;
+      listingText = String(form.get("listingText") ?? "").trim();
+    }
 
-    if (!(file instanceof File) && !listingText) {
+    if (!file && !preUploadedName && !listingText) {
       return NextResponse.json(
         { error: "Provide a photo and/or listing details to vet." },
         { status: 400 }
@@ -36,8 +50,8 @@ export async function POST(req: NextRequest) {
 
     let imagePayload = null as { base64: string; mediaType: string } | null;
     let imageHash = "";
-    if (file instanceof File) {
-      const prepared = await prepareUploadedImage(file);
+    if (file || preUploadedName) {
+      const prepared = file ? await prepareUploadedImage(file) : await loadPreUploadedImage(preUploadedName);
       imagePayload = { base64: prepared.base64, mediaType: prepared.mediaType };
       imageHash = prepared.hash;
     }

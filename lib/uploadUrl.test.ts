@@ -9,6 +9,8 @@ describe("safeStoredImageUrl", () => {
     expect(safeStoredImageUrl("/api/uploads/0123456789abcdefabcd.webp")).toBe(
       "/api/uploads/0123456789abcdefabcd.webp"
     );
+    const hashName = `${"ab".repeat(32)}.jpg`;
+    expect(safeStoredImageUrl(`/api/uploads/${hashName}`)).toBe(`/api/uploads/${hashName}`);
   });
 
   it("rejects executable, external, malformed, and non-image URLs", () => {

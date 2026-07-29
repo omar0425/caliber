@@ -121,6 +121,61 @@ export async function saveUploadedImage(file: File): Promise<SavedImage> {
   return persistPreparedImage(await prepareUploadedImage(file));
 }
 
+// Persist under a deterministic content-hash name — used by the pre-upload
+// (Google Lens pre-check) flow. Same photo → same file (no duplicates), and
+// the analyze-by-name routes recover the cache-key hash from the filename, so
+// AI-cache keys line up exactly with images that arrive via direct multipart.
+export async function persistPreparedImageByHash(
+  image: PreparedImage
+): Promise<SavedImage & { name: string }> {
+  await fs.mkdir(UPLOAD_DIR, { recursive: true });
+  const name = `${image.hash}.${image.extension}`;
+  await fs.writeFile(path.join(UPLOAD_DIR, name), image.bytes);
+  return {
+    base64: image.base64,
+    mediaType: image.mediaType,
+    publicUrl: urlFor(name),
+    hash: image.hash,
+    name,
+  };
+}
+
+// Load a pre-uploaded image back by its stored name (strict 64-hex hash names
+// only — the format persistPreparedImageByHash writes; no path traversal).
+export async function loadPreUploadedImage(name: unknown): Promise<SavedImage & { name: string }> {
+  const match = typeof name === "string" ? /^([a-f0-9]{64})\.(jpg|png|webp|gif)$/.exec(name) : null;
+  if (!match) throw new RequestError("Invalid uploaded-photo reference.", 400);
+  const mediaTypes: Record<string, string> = {
+    jpg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    gif: "image/gif",
+  };
+  const mediaType = mediaTypes[match[2]];
+  try {
+    const bytes = await fs.readFile(path.join(UPLOAD_DIR, match[0]));
+    if (!matchesSignature(bytes, mediaType)) {
+      throw new RequestError("The uploaded photo is unreadable.", 400);
+    }
+    return {
+      base64: bytes.toString("base64"),
+      mediaType,
+      publicUrl: urlFor(match[0]),
+      hash: match[1],
+      name: match[0],
+    };
+  } catch (error) {
+    if (error instanceof RequestError) throw error;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new RequestError(
+        "That uploaded photo has expired — please choose the photo again.",
+        404
+      );
+    }
+    throw error;
+  }
+}
+
 const DOC_EXT: Record<string, string> = {
   ...EXT,
   "application/pdf": "pdf",
