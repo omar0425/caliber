@@ -13,7 +13,10 @@ import crypto from "node:crypto";
 // Images only (never PDFs/documents), GET/HEAD only (enforced in the proxy),
 // expiry baked into the signature so neither part can be tampered with.
 
-export const SIGNED_UPLOAD_TTL_SECONDS = 30 * 60;
+// Short: the Lens button re-signs at click time (/api/uploads/sign), so the
+// link only needs to outlive Google's immediate fetch — a tight window keeps
+// the bearer-capability exposure minimal.
+export const SIGNED_UPLOAD_TTL_SECONDS = 5 * 60;
 
 const NAME_PATTERN = /^[a-f0-9]{16,}\.(?:jpg|png|webp|gif)$/;
 

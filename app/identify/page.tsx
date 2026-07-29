@@ -291,7 +291,7 @@ export default function IdentifyPage() {
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4">
           <UploadZone onFile={pickFile} preview={preview} disabled={loading || saving} />
-          <LensButton imagePath={uploadedUrl} uploading={uploading} />
+          <LensButton name={uploadName} imagePath={uploadedUrl} uploading={uploading} />
           <div className="card p-4 space-y-2">
             <label htmlFor="identification-hint" className="text-base font-semibold text-ink">
               Help Caliber identify it

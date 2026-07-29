@@ -96,7 +96,7 @@ export default function VetPage() {
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4">
           <UploadZone onFile={pickFile} preview={preview} hint="Drop the listing's photo" />
-          <LensButton imagePath={lensUrl} uploading={uploading} />
+          <LensButton name={uploadName} imagePath={lensUrl} uploading={uploading} />
           <div>
             <label className="text-[0.95rem] font-semibold text-muted">
               Listing details (optional but recommended)
