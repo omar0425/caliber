@@ -6,6 +6,10 @@ function abbr(n: number): string {
   return `$${Math.round(n)}`;
 }
 
+function fullValue(n: number): string {
+  return `$${Math.round(n).toLocaleString("en-US")}`;
+}
+
 // Dependency-free area/line chart. Renders as scalable SVG.
 export default function ValueChart({ data, height = 260 }: { data: Point[]; height?: number }) {
   const W = 760;
@@ -19,7 +23,7 @@ export default function ValueChart({ data, height = 260 }: { data: Point[]; heig
 
   if (data.length === 0) {
     return (
-      <div className="h-48 flex items-center justify-center text-muted text-sm">
+      <div className="h-48 flex items-center justify-center text-center text-muted text-base leading-relaxed px-2">
         No valuation history yet — add watches and refresh their values over time.
       </div>
     );
@@ -49,7 +53,22 @@ export default function ValueChart({ data, height = 260 }: { data: Point[]; heig
   const gridVals = [max, min + (max - min) * 0.5, min];
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ height: "auto" }} role="img" aria-label="Collection value over time">
+    <div className="min-w-0">
+      <div className="grid grid-cols-2 gap-3 mb-4 sm:hidden" aria-label="Value chart summary">
+        <div className="rounded-xl border border-line bg-surface-2/50 p-3 min-w-0">
+          <p className="text-[0.95rem] font-semibold text-muted">Starting value</p>
+          <p className="text-lg text-accent-soft mt-1 break-words">{fullValue(data[0].value)}</p>
+          <p className="text-[0.95rem] text-muted break-words">{data[0].date}</p>
+        </div>
+        <div className="rounded-xl border border-line bg-surface-2/50 p-3 min-w-0">
+          <p className="text-[0.95rem] font-semibold text-muted">Latest value</p>
+          <p className="text-lg text-accent-soft mt-1 break-words">
+            {fullValue(data[data.length - 1].value)}
+          </p>
+          <p className="text-[0.95rem] text-muted break-words">{data[data.length - 1].date}</p>
+        </div>
+      </div>
+      <svg className="hidden sm:block" viewBox={`0 0 ${W} ${H}`} width="100%" style={{ height: "auto" }} role="img" aria-label="Collection value over time">
       <defs>
         <linearGradient id="valfill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.35" />
@@ -61,7 +80,7 @@ export default function ValueChart({ data, height = 260 }: { data: Point[]; heig
       {gridVals.map((v, i) => (
         <g key={i}>
           <line x1={padL} x2={W - padR} y1={y(v)} y2={y(v)} stroke="var(--color-line)" strokeWidth="1" />
-          <text x={padL - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill="var(--color-muted)">
+          <text x={padL - 8} y={y(v) + 4} textAnchor="end" fontSize="14" fill="var(--color-muted)">
             {abbr(v)}
           </text>
         </g>
@@ -74,12 +93,13 @@ export default function ValueChart({ data, height = 260 }: { data: Point[]; heig
       <circle cx={x(data.length - 1)} cy={y(data[data.length - 1].value)} r="4" fill="var(--color-accent-soft)" />
 
       {/* x labels: first & last */}
-      <text x={padL} y={H - 8} fontSize="11" fill="var(--color-muted)">{data[0].date}</text>
+      <text x={padL} y={H - 8} fontSize="14" fill="var(--color-muted)">{data[0].date}</text>
       {data.length > 1 && (
-        <text x={W - padR} y={H - 8} textAnchor="end" fontSize="11" fill="var(--color-muted)">
+        <text x={W - padR} y={H - 8} textAnchor="end" fontSize="14" fill="var(--color-muted)">
           {data[data.length - 1].date}
         </text>
       )}
-    </svg>
+      </svg>
+    </div>
   );
 }

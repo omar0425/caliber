@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { deleteStoredFilesBestEffort } from "@/lib/uploadReferences";
 
 export const runtime = "nodejs";
 
@@ -10,13 +11,24 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     const photo = await prisma.photo.findUnique({ where: { id } });
     if (!photo) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    await prisma.photo.delete({ where: { id } });
-
-    const watch = await prisma.watch.findUnique({ where: { id: photo.watchId }, select: { imageUrl: true } });
-    if (watch?.imageUrl === photo.url) {
-      const next = await prisma.photo.findFirst({ where: { watchId: photo.watchId }, orderBy: { createdAt: "asc" } });
-      await prisma.watch.update({ where: { id: photo.watchId }, data: { imageUrl: next?.url ?? null } });
-    }
+    await prisma.$transaction(async (tx) => {
+      await tx.photo.delete({ where: { id } });
+      const watch = await tx.watch.findUnique({
+        where: { id: photo.watchId },
+        select: { imageUrl: true },
+      });
+      if (watch?.imageUrl === photo.url) {
+        const next = await tx.photo.findFirst({
+          where: { watchId: photo.watchId },
+          orderBy: { createdAt: "asc" },
+        });
+        await tx.watch.update({
+          where: { id: photo.watchId },
+          data: { imageUrl: next?.url ?? null },
+        });
+      }
+    });
+    await deleteStoredFilesBestEffort([photo.url]);
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Failed to delete photo." }, { status: 500 });

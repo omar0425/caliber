@@ -1,19 +1,36 @@
 import { prisma } from "./prisma";
+import { protectSecret, revealSecret, secretProtectionEnabled } from "./secretStorage";
 
-const API_KEY_SETTING = "anthropic_api_key";
+const API_KEY_SETTING = "openai_api_key";
 
-// Resolve the Anthropic API key: a key saved in the app (Settings page) wins,
-// otherwise fall back to the ANTHROPIC_API_KEY environment variable.
+// Environment secrets are preferred in production. The database option exists
+// for the small, self-hosted single-user deployment.
 export async function getApiKey(): Promise<string | null> {
+  const env = process.env.OPENAI_API_KEY?.trim();
+  if (env) return env;
   const row = await prisma.setting.findUnique({ where: { key: API_KEY_SETTING } });
   const stored = row?.value?.trim();
-  if (stored) return stored;
-  const env = process.env.ANTHROPIC_API_KEY?.trim();
-  return env || null;
+  if (stored) {
+    try {
+      const revealed = revealSecret(stored).trim();
+      if (revealed && revealed === stored && secretProtectionEnabled()) {
+        // Transparently upgrade legacy plaintext values after a deployment
+        // secret is configured.
+        await prisma.setting.update({
+          where: { key: API_KEY_SETTING },
+          data: { value: protectSecret(revealed) },
+        });
+      }
+      return revealed || null;
+    } catch (error) {
+      console.error("Unable to decrypt the saved OpenAI API key.", error);
+    }
+  }
+  return null;
 }
 
 export async function setApiKey(key: string): Promise<void> {
-  const value = key.trim();
+  const value = protectSecret(key.trim());
   await prisma.setting.upsert({
     where: { key: API_KEY_SETTING },
     create: { key: API_KEY_SETTING, value },
@@ -27,10 +44,13 @@ export async function clearApiKey(): Promise<void> {
 
 // Whether the key came from the app database vs. the environment.
 export async function getKeySource(): Promise<"app" | "env" | "none"> {
-  const row = await prisma.setting.findUnique({ where: { key: API_KEY_SETTING } });
-  if (row?.value?.trim()) return "app";
-  if (process.env.ANTHROPIC_API_KEY?.trim()) return "env";
+  if (process.env.OPENAI_API_KEY?.trim()) return "env";
+  if (await getApiKey()) return "app";
   return "none";
+}
+
+export function isStoredKeyEncrypted(): boolean {
+  return secretProtectionEnabled();
 }
 
 const BUDGET_SETTING = "monthly_budget_usd";

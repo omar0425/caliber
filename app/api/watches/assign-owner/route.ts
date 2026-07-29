@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  enforceContentLength,
+  enforceContentType,
+  RequestError,
+} from "@/lib/security";
 
 export const runtime = "nodejs";
 
@@ -26,15 +31,23 @@ export async function GET() {
 // run again later without overwriting anyone else's watches.
 export async function POST(req: NextRequest) {
   try {
+    enforceContentLength(req, 8 * 1024);
+    enforceContentType(req, "application/json");
     const body = (await req.json()) as { owner?: unknown; includeAssigned?: unknown };
     const owner = typeof body.owner === "string" ? body.owner.trim() : "";
     if (!owner) return NextResponse.json({ error: "Owner name or email is required." }, { status: 400 });
+    if (owner.length > 200) {
+      return NextResponse.json({ error: "Owner name or email is too long." }, { status: 400 });
+    }
 
     const where = body.includeAssigned === true ? {} : { owner: null };
     const { count } = await prisma.watch.updateMany({ where, data: { owner } });
     return NextResponse.json({ ok: true, updated: count, owner });
   } catch (err) {
     console.error("assign owner error", err);
-    return NextResponse.json({ error: "Failed to assign owner." }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof RequestError ? err.message : "Failed to assign owner." },
+      { status: err instanceof RequestError ? err.status : 500 }
+    );
   }
 }

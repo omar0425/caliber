@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 
-const DISMISS_KEY = "caliber_gs_dismissed";
-
 type Item = { done: boolean; title: string; desc: string; href: string; cta: string };
 
 export default function GettingStarted({
@@ -47,10 +45,10 @@ export default function GettingStarted({
   if (allDone) return null;
 
   return (
-    <section className="card p-6 sm:p-7">
-      <div className="flex items-center justify-between mb-4">
+    <section className="card p-4 sm:p-7">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h2 className="font-serif text-2xl">Getting started</h2>
-        <button onClick={() => setDismissed(true)} className="text-sm text-muted hover:text-ink">
+        <button onClick={() => setDismissed(true)} className="min-h-11 px-2 text-base text-muted hover:text-ink">
           Hide
         </button>
       </div>
@@ -58,11 +56,11 @@ export default function GettingStarted({
         {items.map((it, i) => (
           <li
             key={i}
-            className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 rounded-xl border border-line/70 bg-surface-2/40"
+            className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl border border-line/70 bg-surface-2/40 min-w-0"
           >
             <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
               <span
-                className="w-8 h-8 rounded-full flex items-center justify-center text-base font-semibold shrink-0"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-semibold shrink-0"
                 style={{
                   background: it.done ? "var(--color-good)" : "var(--color-surface-2)",
                   color: it.done ? "#08120b" : "var(--color-muted)",
@@ -72,12 +70,12 @@ export default function GettingStarted({
                 {it.done ? "✓" : i + 1}
               </span>
               <div className="flex-1 min-w-0">
-                <p className={`font-medium ${it.done ? "text-muted line-through" : "text-ink"}`}>{it.title}</p>
-                <p className="text-sm text-muted">{it.desc}</p>
+                <p className={`text-base font-semibold ${it.done ? "text-muted line-through" : "text-ink"}`}>{it.title}</p>
+                <p className="text-base text-muted leading-relaxed mt-0.5">{it.desc}</p>
               </div>
             </div>
             {!it.done && (
-              <Link href={it.href} className="btn btn-ghost text-sm shrink-0 self-start sm:self-auto ml-12 sm:ml-0">
+              <Link href={it.href} className="btn btn-ghost shrink-0 w-full sm:w-auto sm:self-auto">
                 {it.cta}
               </Link>
             )}

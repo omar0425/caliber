@@ -20,6 +20,9 @@
 
 html {
   color-scheme: dark;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
@@ -28,9 +31,14 @@ body {
     var(--color-base);
   color: var(--color-ink);
   font-family: var(--font-sans);
-  font-size: 1.075rem; /* ~17px base — easier on older eyes */
+  font-size: 1.125rem; /* 18px reading base for comfortable phone use */
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Clear keyboard focus for accessibility */
@@ -52,12 +60,15 @@ body {
   background: linear-gradient(180deg, var(--color-surface) 0%, #101015 100%);
   border: 1px solid var(--color-line);
   border-radius: 16px;
+  min-width: 0;
 }
 
 .card-hover { transition: border-color 0.2s ease, transform 0.2s ease; }
-.card-hover:hover {
-  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-line));
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .card-hover:hover {
+    border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-line));
+    transform: translateY(-2px);
+  }
 }
 
 .btn {
@@ -67,38 +78,61 @@ body {
   gap: 0.5rem;
   border-radius: 10px;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 1.0625rem;
+  line-height: 1.25;
   padding: 0.75rem 1.35rem;
-  min-height: 46px; /* comfortable tap target */
+  min-width: 0;
+  min-height: 48px;
   transition: all 0.18s ease;
   cursor: pointer;
-  white-space: nowrap;
+  touch-action: manipulation;
+  white-space: normal;
+  max-width: 100%;
+  text-align: center;
 }
 .btn-gold {
   background: linear-gradient(180deg, var(--color-accent-soft), var(--color-accent));
   color: #1a1408;
   border: 1px solid var(--color-accent);
 }
-.btn-gold:hover { filter: brightness(1.07); }
 .btn-ghost {
   background: var(--color-surface-2);
   color: var(--color-ink);
   border: 1px solid var(--color-line);
 }
-.btn-ghost:hover { border-color: var(--color-accent); }
+@media (hover: hover) and (pointer: fine) {
+  .btn-gold:hover { filter: brightness(1.07); }
+  .btn-ghost:hover { border-color: var(--color-accent); }
+}
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .input {
   width: 100%;
+  min-width: 0;
   background: var(--color-surface-2);
   border: 1px solid var(--color-line);
   border-radius: 10px;
   padding: 0.7rem 0.9rem;
   color: var(--color-ink);
-  font-size: 1rem;
+  font-size: 1.0625rem;
+  line-height: 1.45;
+  min-height: 48px;
 }
 .input:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(200,164,92,0.18); }
-.label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--color-muted); font-weight: 600; }
+.label { font-size: 0.9rem; line-height: 1.4; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted); font-weight: 600; }
+
+@media (max-width: 399px) {
+  .btn {
+    padding: 0.7rem 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .card-hover {
+    transition: none;
+  }
+}
 
 /* Print: hide chrome, force everything onto clean white paper.
    The app is dark-themed, so remap the palette to dark-on-white for paper. */

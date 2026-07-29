@@ -2,13 +2,14 @@ import { promises as fs } from "fs";
 import path from "path";
 import crypto from "crypto";
 import sharp from "sharp";
+import { RequestError } from "./security";
 
 // Where uploaded files are stored. In production (e.g. Railway) point UPLOAD_DIR
 // at a persistent volume so files survive redeploys. Files are served back
 // through the /api/uploads/[name] route, not the static folder.
 export const UPLOAD_DIR = process.env.UPLOAD_DIR
-  ? path.resolve(process.env.UPLOAD_DIR)
-  : path.join(process.cwd(), "uploads");
+  ? path.resolve(/* turbopackIgnore: true */ process.env.UPLOAD_DIR)
+  : path.join(/* turbopackIgnore: true */ process.cwd(), "uploads");
 
 function urlFor(name: string) {
   return `/api/uploads/${name}`;
@@ -25,95 +26,154 @@ export type SavedImage = {
   base64: string;
   mediaType: string;
   publicUrl: string; // e.g. /api/uploads/abc.jpg
-  name: string; // stored filename (content-hash based)
   hash: string; // sha256 of the image bytes (for result caching)
+};
+
+export type PreparedImage = Omit<SavedImage, "publicUrl"> & {
+  bytes: Buffer;
+  extension: string;
 };
 
 // Phone photos are 2-5 MB; on screen (and for the AI) ~1600px JPEG is plenty.
 // Compressing on upload cuts storage 5-10x and speeds up mobile page loads.
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 82;
+const MAX_IMAGE_BYTES = Number(process.env.MAX_IMAGE_BYTES || 10 * 1024 * 1024);
+const MAX_DOCUMENT_BYTES = Number(process.env.MAX_DOCUMENT_BYTES || 20 * 1024 * 1024);
+
+function matchesSignature(bytes: Buffer, type: string): boolean {
+  if (type === "image/jpeg") return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (type === "image/png") return bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  if (type === "image/webp") return bytes.subarray(0, 4).toString() === "RIFF" && bytes.subarray(8, 12).toString() === "WEBP";
+  if (type === "image/gif") return ["GIF87a", "GIF89a"].includes(bytes.subarray(0, 6).toString());
+  if (type === "application/pdf") return bytes.subarray(0, 5).toString() === "%PDF-";
+  return false;
+}
 
 async function compressImage(bytes: Buffer, mediaType: string): Promise<{ bytes: Buffer; mediaType: string; ext: string }> {
-  // Leave GIFs alone (may be animated; also rare here).
-  if (mediaType === "image/gif") return { bytes, mediaType, ext: "gif" };
   try {
+    // Sharp decodes the first frame of a GIF. This keeps OpenAI inputs within
+    // its non-animated GIF requirement while still accepting phone/browser uploads.
     const out = await sharp(bytes)
       .rotate() // apply EXIF orientation (phone photos) before stripping metadata
       .resize(MAX_DIMENSION, MAX_DIMENSION, { fit: "inside", withoutEnlargement: true })
       .jpeg({ quality: JPEG_QUALITY, mozjpeg: true })
       .toBuffer();
     // Keep the original if compression somehow made it bigger (tiny inputs).
-    if (out.length < bytes.length) return { bytes: out, mediaType: "image/jpeg", ext: "jpg" };
+    if (mediaType === "image/gif" || out.length < bytes.length) {
+      return { bytes: out, mediaType: "image/jpeg", ext: "jpg" };
+    }
     return { bytes, mediaType, ext: EXT[mediaType] };
   } catch {
-    // Unreadable/corrupt image data — store as-is rather than failing the upload.
-    return { bytes, mediaType, ext: EXT[mediaType] };
+    throw new RequestError("The uploaded image is unreadable or malformed.", 400);
   }
 }
 
-// Read an uploaded File, compress it, persist it under UPLOAD_DIR, and return
-// both a base64 payload (for the AI) and a public URL (for the DB/UI).
-export async function saveUploadedImage(file: File): Promise<SavedImage> {
+// Validate and compress an image without persisting it. AI-only flows such as
+// purchase vetting can use this without leaving a permanent copy behind.
+export async function prepareUploadedImage(file: File): Promise<PreparedImage> {
   const rawType = file.type || "image/jpeg";
   if (!EXT[rawType]) {
-    throw new Error(`Unsupported image type: ${rawType}. Use JPEG, PNG, WebP, or GIF.`);
+    throw new RequestError(
+      `Unsupported image type: ${rawType}. Use JPEG, PNG, WebP, or GIF.`,
+      415
+    );
+  }
+  if (file.size <= 0 || file.size > MAX_IMAGE_BYTES) {
+    throw new RequestError(
+      `Image must be smaller than ${Math.round(MAX_IMAGE_BYTES / 1024 / 1024)} MB.`,
+      413
+    );
   }
   const original = Buffer.from(await file.arrayBuffer());
+  if (!matchesSignature(original, rawType)) {
+    throw new RequestError("Image contents do not match its file type.", 400);
+  }
   // Hash the ORIGINAL bytes so re-uploading the same photo still hits the
   // result cache even if compression settings change later.
   const hash = crypto.createHash("sha256").update(original).digest("hex");
 
   const { bytes, mediaType, ext } = await compressImage(original, rawType);
-  await fs.mkdir(UPLOAD_DIR, { recursive: true });
-  // Name the file by its ORIGINAL content hash: re-uploading the same photo
-  // overwrites the same file (no duplicates), and the analyze-by-name routes
-  // can recover the cache key straight from the filename.
-  const name = `${hash}.${ext}`;
-  await fs.writeFile(path.join(UPLOAD_DIR, name), bytes);
   return {
+    bytes,
+    extension: ext,
     base64: bytes.toString("base64"),
     mediaType,
-    publicUrl: urlFor(name),
-    name,
     hash,
   };
 }
 
-const MEDIA_TYPE_BY_EXT: Record<string, string> = {
-  jpg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  gif: "image/gif",
-};
-
-export type StoredImage = {
-  base64: string;
-  mediaType: string;
-  publicUrl: string;
-  name: string;
-  hash: string;
-};
-
-// Load a previously uploaded image back from UPLOAD_DIR by its stored name
-// (strictly validated — hex filename only, no path traversal). Used by the
-// analyze routes when the photo was uploaded ahead of time (e.g. for the
-// Google Lens pre-check). The filename stem IS the original-bytes hash, so
-// cache keys line up with images analyzed the old single-request way.
-export async function loadStoredImage(name: string): Promise<StoredImage> {
-  if (!/^[a-f0-9]{16,}\.(jpg|png|webp|gif)$/.test(name)) {
-    throw new Error("Invalid image reference.");
-  }
-  const bytes = await fs.readFile(path.join(UPLOAD_DIR, name));
-  const [stem, ext] = name.split(".");
-  const hash = stem.length === 64 ? stem : crypto.createHash("sha256").update(bytes).digest("hex");
+export async function persistPreparedImage(image: PreparedImage): Promise<SavedImage> {
+  await fs.mkdir(UPLOAD_DIR, { recursive: true });
+  const name = `${crypto.randomBytes(10).toString("hex")}.${image.extension}`;
+  await fs.writeFile(path.join(UPLOAD_DIR, name), image.bytes);
   return {
-    base64: bytes.toString("base64"),
-    mediaType: MEDIA_TYPE_BY_EXT[ext] ?? "image/jpeg",
+    base64: image.base64,
+    mediaType: image.mediaType,
     publicUrl: urlFor(name),
-    name,
-    hash,
+    hash: image.hash,
   };
+}
+
+// Read an uploaded File, compress it, persist it under UPLOAD_DIR, and return
+// both a base64 payload (for the AI) and a public URL (for the DB/UI).
+export async function saveUploadedImage(file: File): Promise<SavedImage> {
+  return persistPreparedImage(await prepareUploadedImage(file));
+}
+
+// Persist under a deterministic content-hash name — used by the pre-upload
+// (Google Lens pre-check) flow. Same photo → same file (no duplicates), and
+// the analyze-by-name routes recover the cache-key hash from the filename, so
+// AI-cache keys line up exactly with images that arrive via direct multipart.
+export async function persistPreparedImageByHash(
+  image: PreparedImage
+): Promise<SavedImage & { name: string }> {
+  await fs.mkdir(UPLOAD_DIR, { recursive: true });
+  const name = `${image.hash}.${image.extension}`;
+  await fs.writeFile(path.join(UPLOAD_DIR, name), image.bytes);
+  return {
+    base64: image.base64,
+    mediaType: image.mediaType,
+    publicUrl: urlFor(name),
+    hash: image.hash,
+    name,
+  };
+}
+
+// Load a pre-uploaded image back by its stored name (strict 64-hex hash names
+// only — the format persistPreparedImageByHash writes; no path traversal).
+export async function loadPreUploadedImage(name: unknown): Promise<SavedImage & { name: string }> {
+  const match = typeof name === "string" ? /^([a-f0-9]{64})\.(jpg|png|webp|gif)$/.exec(name) : null;
+  if (!match) throw new RequestError("Invalid uploaded-photo reference.", 400);
+  const mediaTypes: Record<string, string> = {
+    jpg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    gif: "image/gif",
+  };
+  const mediaType = mediaTypes[match[2]];
+  try {
+    const bytes = await fs.readFile(path.join(UPLOAD_DIR, match[0]));
+    if (!matchesSignature(bytes, mediaType)) {
+      throw new RequestError("The uploaded photo is unreadable.", 400);
+    }
+    return {
+      base64: bytes.toString("base64"),
+      mediaType,
+      publicUrl: urlFor(match[0]),
+      hash: match[1],
+      name: match[0],
+    };
+  } catch (error) {
+    if (error instanceof RequestError) throw error;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new RequestError(
+        "That uploaded photo has expired — please choose the photo again.",
+        404
+      );
+    }
+    throw error;
+  }
 }
 
 const DOC_EXT: Record<string, string> = {
@@ -127,14 +187,65 @@ export type SavedFile = {
   originalName: string;
 };
 
+export async function deleteStoredFile(publicUrl: string | null | undefined): Promise<void> {
+  const match = publicUrl?.match(/^\/api\/uploads\/([a-f0-9]{16,}\.(?:jpg|png|webp|gif|pdf))$/);
+  if (!match) return;
+  try {
+    await fs.unlink(path.join(UPLOAD_DIR, match[1]));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+}
+
+export async function loadStoredImage(
+  publicUrl: string | null | undefined
+): Promise<{ base64: string; mediaType: string }> {
+  const match = publicUrl?.match(
+    /^\/api\/uploads\/([a-f0-9]{16,}\.(jpg|png|webp|gif))$/
+  );
+  if (!match) {
+    throw new RequestError("Add a Caliber-hosted cover photo before re-analyzing.", 400);
+  }
+
+  const mediaTypes: Record<string, string> = {
+    jpg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    gif: "image/gif",
+  };
+  const mediaType = mediaTypes[match[2]];
+  try {
+    const bytes = await fs.readFile(path.join(UPLOAD_DIR, match[1]));
+    if (!matchesSignature(bytes, mediaType)) {
+      throw new RequestError("The saved cover photo is unreadable.", 400);
+    }
+    return { base64: bytes.toString("base64"), mediaType };
+  } catch (error) {
+    if (error instanceof RequestError) throw error;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new RequestError("The saved cover photo could not be found.", 404);
+    }
+    throw error;
+  }
+}
+
 // Persist an arbitrary provenance document (image or PDF) under UPLOAD_DIR.
 // Image documents (photographed receipts etc.) are compressed; PDFs pass through.
 export async function saveUploadedFile(file: File): Promise<SavedFile> {
   const rawType = file.type || "application/octet-stream";
   if (!DOC_EXT[rawType]) {
-    throw new Error(`Unsupported file type: ${rawType}. Use an image or PDF.`);
+    throw new RequestError(`Unsupported file type: ${rawType}. Use an image or PDF.`, 415);
+  }
+  if (file.size <= 0 || file.size > MAX_DOCUMENT_BYTES) {
+    throw new RequestError(
+      `Document must be smaller than ${Math.round(MAX_DOCUMENT_BYTES / 1024 / 1024)} MB.`,
+      413
+    );
   }
   let bytes: Buffer = Buffer.from(await file.arrayBuffer());
+  if (!matchesSignature(bytes, rawType)) {
+    throw new RequestError("Document contents do not match its file type.", 400);
+  }
   let mimeType = rawType;
   let ext = DOC_EXT[rawType];
   if (rawType.startsWith("image/")) {

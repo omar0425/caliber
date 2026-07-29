@@ -19,10 +19,13 @@ export default function SpendWarning() {
   }, []);
 
   useEffect(() => {
-    load();
+    const timer = window.setTimeout(() => void load(), 0);
     const onFocus = () => load();
     window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [load]);
 
   if (dismissed || !usage || (usage.level !== "low" && usage.level !== "over")) return null;
@@ -34,23 +37,23 @@ export default function SpendWarning() {
 
   return (
     <div
-      className="w-full text-sm"
+      className="w-full text-base"
       style={{ background: over ? "rgba(229,103,95,0.12)" : "rgba(224,178,74,0.12)", borderBottom: `1px solid ${color}` }}
     >
-      <div className="max-w-6xl mx-auto px-5 py-2.5 flex items-center gap-3">
-        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-        <p className="flex-1" style={{ color }}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-5 py-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 items-start">
+        <span className="w-2.5 h-2.5 rounded-full shrink-0 mt-2" style={{ background: color }} />
+        <p className="min-w-0 leading-relaxed break-words" style={{ color }}>
           {over ? (
             <>
-              You&apos;ve reached your {budget} monthly AI budget ({spent} used). New analyses still work, but
-              consider raising the budget or watching your{" "}
+              You&apos;ve reached your {budget} monthly AI budget ({spent} used). New analyses are blocked.
+              Raise the budget or review your{" "}
               <a
-                href="https://console.anthropic.com/settings/usage"
+                href="https://platform.openai.com/usage"
                 target="_blank"
                 rel="noreferrer"
                 className="underline font-medium"
               >
-                Anthropic credit balance
+                OpenAI usage
               </a>
               .
             </>
@@ -61,7 +64,11 @@ export default function SpendWarning() {
             </>
           )}
         </p>
-        <button onClick={() => setDismissed(true)} className="text-xs opacity-70 hover:opacity-100" style={{ color }}>
+        <button
+          onClick={() => setDismissed(true)}
+          className="col-start-2 min-h-11 justify-self-start text-base font-medium opacity-80 hover:opacity-100"
+          style={{ color }}
+        >
           Dismiss
         </button>
       </div>
