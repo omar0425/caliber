@@ -17,6 +17,7 @@ import {
 import { WatchSpecSchema } from "@/lib/types";
 import { normalizeHttpSources } from "@/lib/aiSources";
 import { findBrandConflict } from "@/lib/identificationQuality";
+import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -125,7 +126,7 @@ export async function POST(req: NextRequest) {
     try {
       await setCached(key, "identify", spec);
     } catch (error) {
-      console.error("identify cache write failed", error);
+      await recordFailure("api/identify:cache", error, { level: "warn" });
     }
 
     return NextResponse.json({
@@ -134,12 +135,12 @@ export async function POST(req: NextRequest) {
       cached: false,
     });
   } catch (err) {
-    console.error("identify error", err);
+    await recordFailure("api/identify", err, { status: err instanceof RequestError ? err.status : 500 });
     if (cleanupUrl) {
       try {
         await deleteStoredFile(cleanupUrl);
       } catch (cleanupError) {
-        console.error("identify upload cleanup failed", cleanupError);
+        await recordFailure("api/identify:cleanup", cleanupError, { level: "warn" });
       }
     }
     return NextResponse.json(

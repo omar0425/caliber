@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import ErrorLogViewer from "@/components/ErrorLogViewer";
 
 type Status = {
   configured: boolean;
@@ -533,6 +534,9 @@ export default function SettingsPage() {
           The appraisal report opens a print-ready page — use your browser&apos;s “Save as PDF” for insurance documentation.
         </p>
       </div>
+
+      {/* Error log */}
+      <ErrorLogViewer />
     </div>
   );
 }

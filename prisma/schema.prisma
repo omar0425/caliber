@@ -129,6 +129,21 @@ model AiCache {
   createdAt DateTime @default(now())
 }
 
+// Errors and warnings worth showing the collector, so bugs can be diagnosed
+// from inside the app instead of the hosting dashboard. Secrets are redacted
+// before writing (lib/errorLog.ts) and the newest 500 rows are kept.
+model ErrorLog {
+  id        String   @id @default(cuid())
+  level     String   @default("error") // error | warn
+  source    String // e.g. "api/identify", "ui/watch-page"
+  message   String
+  detail    String? // stack trace / context, redacted and truncated
+  status    Int? // HTTP status returned to the client, when applicable
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 // One row per billed AI call — used to estimate spend and warn near budget.
 model UsageEvent {
   id           String   @id @default(cuid())

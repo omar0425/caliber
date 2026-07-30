@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { protectSecret, revealSecret, secretProtectionEnabled } from "./secretStorage";
+import { recordFailure } from "./errorLog";
 
 const API_KEY_SETTING = "openai_api_key";
 
@@ -23,7 +24,7 @@ export async function getApiKey(): Promise<string | null> {
       }
       return revealed || null;
     } catch (error) {
-      console.error("Unable to decrypt the saved OpenAI API key.", error);
+      await recordFailure("lib/settings:decrypt", error, { level: "warn" });
     }
   }
   return null;

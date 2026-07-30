@@ -1,5 +1,6 @@
 import type { Response } from "openai/resources/responses/responses";
 import { prisma } from "./prisma";
+import { recordFailure } from "./errorLog";
 
 // USD per single token. Keep in sync with the official OpenAI pricing page.
 type Price = { input: number; cachedInput: number; output: number };
@@ -74,7 +75,7 @@ export async function recordUsage(
       data: { kind, model: billedModel, inputTokens, outputTokens, webSearches, costUsd },
     });
   } catch (err) {
-    console.error("recordUsage failed", err);
+    await recordFailure("lib/usage", err, { level: "warn" });
   }
 }
 

@@ -4,6 +4,7 @@ import path from "path";
 import { UPLOAD_DIR } from "@/lib/upload";
 import { signedUploadPath } from "@/lib/signedUrl";
 import { RequestError } from "@/lib/security";
+import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
     if (!lensUrl) throw new RequestError("Signing is not available.", 503);
     return NextResponse.json({ lensUrl });
   } catch (err) {
-    console.error("sign upload error", err);
+    await recordFailure("api/uploads/sign", err, { status: err instanceof RequestError ? err.status : 500 });
     return NextResponse.json(
       { error: err instanceof RequestError ? err.message : "Signing failed." },
       { status: err instanceof RequestError ? err.status : 500 }

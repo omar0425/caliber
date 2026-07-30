@@ -7,6 +7,7 @@ import {
   enforceContentType,
   RequestError,
 } from "@/lib/security";
+import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ watch }, { status: 201 });
   } catch (err) {
-    console.error("create watch error", err);
+    await recordFailure("api/watches:create", err, { status: err instanceof RequestError ? err.status : 500 });
     return NextResponse.json(
       { error: err instanceof RequestError ? err.message : "Failed to save watch." },
       { status: err instanceof RequestError ? err.status : 500 }

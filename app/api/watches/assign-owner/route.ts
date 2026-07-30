@@ -5,6 +5,7 @@ import {
   enforceContentType,
   RequestError,
 } from "@/lib/security";
+import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
     const { count } = await prisma.watch.updateMany({ where, data: { owner } });
     return NextResponse.json({ ok: true, updated: count, owner });
   } catch (err) {
-    console.error("assign owner error", err);
+    await recordFailure("api/watches/assign-owner", err, { status: err instanceof RequestError ? err.status : 500 });
     return NextResponse.json(
       { error: err instanceof RequestError ? err.message : "Failed to assign owner." },
       { status: err instanceof RequestError ? err.status : 500 }

@@ -9,6 +9,7 @@ import {
   RequestError,
 } from "@/lib/security";
 import { parseChatMessages } from "@/lib/aiInput";
+import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const reply = await chatAboutWatch(buildContext(watch as Record<string, unknown>), messages);
     return NextResponse.json({ reply: reply.content, sources: reply.sources });
   } catch (err) {
-    console.error("chat error", err);
+    await recordFailure("api/watches/[id]/chat", err, { status: err instanceof RequestError ? err.status : 500 });
     return NextResponse.json(
       { error: err instanceof RequestError ? err.message : interpretAiError(err) },
       { status: err instanceof RequestError ? err.status : 500 }

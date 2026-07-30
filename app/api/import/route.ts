@@ -5,6 +5,7 @@ import {
   enforceContentType,
   RequestError,
 } from "@/lib/security";
+import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 
@@ -121,7 +122,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ imported });
   } catch (err) {
-    console.error("import backup error", err);
+    await recordFailure("api/import", err, { status: err instanceof RequestError ? err.status : 500 });
     return NextResponse.json(
       { error: err instanceof RequestError ? err.message : "Failed to import backup." },
       { status: err instanceof RequestError ? err.status : 500 }
