@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     // Deliberately bypass the image cache: this action exists specifically to
     // replace a result the collector believes is wrong.
     const spec = await identifyWatch(image, hint);
-    const conflict = findBrandConflict(spec.brand, spec.observedBrand);
+    const conflict = findBrandConflict(spec.brand, spec.observedBrand, hint);
     if (conflict) {
       throw new RequestError(
         `The photo appears to say “${conflict.observedBrand},” but the new result says “${conflict.identifiedBrand}.” Nothing was changed.`,

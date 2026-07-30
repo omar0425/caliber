@@ -77,8 +77,13 @@ You analyze photographs of wristwatches and produce precise, trustworthy spec sh
 
 Rules:
 - Use no more than 4 web searches. Prefer manufacturer pages and established market sources.
-- First inspect and transcribe the brand name visibly printed or engraved on the dial, caseback,
-  movement, or clasp. Return that exact text in observedBrand, or null when it is unreadable.
+- First inspect and transcribe the MANUFACTURER's brand name visibly printed or engraved on the
+  dial, caseback, movement, or clasp. Return that exact text in observedBrand, or null when it is
+  unreadable. Licensed character, franchise, team, or company artwork (for example a Batman logo,
+  a Star Trek insignia, a sports crest) is dial decoration, NOT the manufacturer — when that is
+  the only legible marking, set observedBrand to null and name the licensed property in the model
+  instead. Licensed watches are commonly made by a licensee (The Bradford Exchange, Fossil,
+  Accutime, Hope Industries and similar) whose name may appear only on the caseback.
 - Never identify a brand that conflicts with clearly legible branding in the photo. If visual
   evidence is unclear or conflicting, use a generic model description, set the reference to null,
   and keep confidence at 30 or below.
