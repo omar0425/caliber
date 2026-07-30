@@ -74,11 +74,12 @@ export async function POST(req: NextRequest) {
     if (cachedResult.success) {
       const conflict = findBrandConflict(
         cachedResult.data.brand,
-        cachedResult.data.observedBrand
+        cachedResult.data.observedBrand,
+        hint
       );
       if (conflict) {
         throw new RequestError(
-          `The photo appears to say “${conflict.observedBrand},” but the result says “${conflict.identifiedBrand}.” Caliber refused the conflicting result.`,
+          `The photo appears to say “${conflict.observedBrand},” but the result says “${conflict.identifiedBrand}.” Caliber refused the conflicting result. If you know the maker, add it under “Help Caliber identify it” and analyze again.`,
           422
         );
       }
@@ -114,10 +115,10 @@ export async function POST(req: NextRequest) {
       { base64: source.base64, mediaType: source.mediaType },
       hint
     );
-    const conflict = findBrandConflict(spec.brand, spec.observedBrand);
+    const conflict = findBrandConflict(spec.brand, spec.observedBrand, hint);
     if (conflict) {
       throw new RequestError(
-        `The photo appears to say “${conflict.observedBrand},” but the result says “${conflict.identifiedBrand}.” Caliber refused the conflicting result. Try a sharper dial photo.`,
+        `The photo appears to say “${conflict.observedBrand},” but the result says “${conflict.identifiedBrand}.” Caliber refused the conflicting result. If you know the maker, add it under “Help Caliber identify it” and analyze again; otherwise try a sharper dial photo.`,
         422
       );
     }
