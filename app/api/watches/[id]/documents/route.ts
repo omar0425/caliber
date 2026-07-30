@@ -6,6 +6,7 @@ import {
   enforceContentType,
   RequestError,
 } from "@/lib/security";
+import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       try {
         await deleteStoredFile(savedUrl);
       } catch (cleanupError) {
-        console.error("document upload cleanup failed", cleanupError);
+        await recordFailure("api/watches/[id]/documents:cleanup", cleanupError, { level: "warn" });
       }
     }
     return NextResponse.json(

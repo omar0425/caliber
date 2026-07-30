@@ -11,6 +11,7 @@ import {
 } from "@/lib/security";
 import { VetResultSchema } from "@/lib/types";
 import { normalizeHttpSources } from "@/lib/aiSources";
+import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -82,12 +83,12 @@ export async function POST(req: NextRequest) {
     try {
       await setCached(key, "vet", result);
     } catch (error) {
-      console.error("vet cache write failed", error);
+      await recordFailure("api/vet:cache", error, { level: "warn" });
     }
 
     return NextResponse.json({ result, cached: false });
   } catch (err) {
-    console.error("vet error", err);
+    await recordFailure("api/vet", err, { status: err instanceof RequestError ? err.status : 500 });
     return NextResponse.json(
       { error: err instanceof RequestError ? err.message : interpretAiError(err) },
       { status: err instanceof RequestError ? err.status : 500 }

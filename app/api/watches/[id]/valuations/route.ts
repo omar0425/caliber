@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     return NextResponse.json({ valuation }, { status: 201 });
   } catch (err) {
-    console.error("create valuation error", err);
+    await recordFailure("api/watches/[id]/valuations", err);
     return NextResponse.json({ error: "Failed to record valuation." }, { status: 500 });
   }
 }

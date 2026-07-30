@@ -21,6 +21,7 @@ import {
   publicRequestOrigin,
   requestUsesHttps,
 } from "@/lib/requestOrigin";
+import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
     response.headers.set("Cache-Control", "no-store");
     return response;
   } catch (error) {
-    console.error("login error", error);
+    await recordFailure("api/auth/login", error, { status: error instanceof RequestError ? error.status : 500 });
     return NextResponse.json(
       { error: error instanceof RequestError ? error.message : "Unable to sign in." },
       { status: error instanceof RequestError ? error.status : 500 }

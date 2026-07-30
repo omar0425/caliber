@@ -8,6 +8,7 @@ import {
   enforceContentType,
   RequestError,
 } from "@/lib/security";
+import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 
@@ -45,7 +46,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     });
     return NextResponse.json({ watch });
   } catch (err) {
-    console.error("update watch error", err);
+    await recordFailure("api/watches/[id]:update", err, { status: err instanceof RequestError ? err.status : 500 });
     return NextResponse.json(
       { error: err instanceof RequestError ? err.message : "Failed to update watch." },
       { status: err instanceof RequestError ? err.status : 500 }
@@ -69,7 +70,7 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
     ]);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("delete watch error", err);
+    await recordFailure("api/watches/[id]:delete", err);
     return NextResponse.json({ error: "Failed to delete watch." }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { deleteStoredFile } from "./upload";
+import { recordFailure } from "./errorLog";
 
 export async function deleteStoredFileIfUnreferenced(publicUrl: string): Promise<void> {
   const [cover, photo, document] = await Promise.all([
@@ -15,7 +16,7 @@ export async function deleteStoredFilesBestEffort(publicUrls: string[]): Promise
   const results = await Promise.allSettled(unique.map(deleteStoredFileIfUnreferenced));
   for (const result of results) {
     if (result.status === "rejected") {
-      console.error("upload cleanup failed", result.reason);
+      await recordFailure("lib/uploadReferences", result.reason, { level: "warn" });
     }
   }
 }

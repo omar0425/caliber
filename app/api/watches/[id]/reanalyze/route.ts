@@ -12,6 +12,7 @@ import {
 } from "@/lib/security";
 import { loadStoredImage } from "@/lib/upload";
 import { normalizeWatchInput } from "@/lib/watchData";
+import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 
     return NextResponse.json({ spec });
   } catch (error) {
-    console.error("reanalyze watch error", error);
+    await recordFailure("api/watches/[id]/reanalyze", error, { status: error instanceof RequestError ? error.status : 500 });
     return NextResponse.json(
       { error: error instanceof RequestError ? error.message : interpretAiError(error) },
       { status: error instanceof RequestError ? error.status : 500 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prepareUploadedImage, persistPreparedImageByHash } from "@/lib/upload";
 import { enforceContentLength, enforceContentType, RequestError } from "@/lib/security";
 import { signedUploadPath } from "@/lib/signedUrl";
+import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (err) {
-    console.error("upload error", err);
+    await recordFailure("api/uploads", err, { status: err instanceof RequestError ? err.status : 500 });
     return NextResponse.json(
       { error: err instanceof RequestError ? err.message : "Upload failed." },
       { status: err instanceof RequestError ? err.status : 500 }
