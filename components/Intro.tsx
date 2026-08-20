@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 // the overlay fades into the app.
 //
 // Pure CSS + inline SVG: zero network calls, zero AI calls, no dependencies.
-// ~8.2s, skippable at any frame (Skip button is focusable on frame one, Esc
+// ~8.4s, skippable at any frame (Skip button is focusable on frame one, Esc
 // also works). Never rendered at all under prefers-reduced-motion — the gate
 // upstream guarantees that; the stylesheet's reduced-motion clamp is the
 // second line of defense.
@@ -19,7 +19,7 @@ import { useEffect, useRef, useState } from "react";
 // Keep this in step with the .intro-* keyframe delays in globals.css: the
 // stylesheet drives the picture, this only decides when the overlay leaves.
 
-const FILM_MS = 8200;
+const FILM_MS = 8400;
 
 export default function Intro({ onDone }: { onDone: () => void }) {
   const [leaving, setLeaving] = useState(false);
