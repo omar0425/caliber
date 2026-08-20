@@ -18,11 +18,28 @@ function Row({ label, value }: { label: string; value?: string | number | null }
   );
 }
 
+// The era chips (year, production status, limited edition) are free text
+// from the AI. Short tags wear the rounded-full pill; anything longer must
+// NOT — border-radius on a multi-line block draws a giant ellipse straight
+// through the text. Sentence-length values drop to labeled prose instead.
+const CHIP_MAX_CHARS = 32;
+function chipworthy(v?: string | null): v is string {
+  return !!v && v.length <= CHIP_MAX_CHARS;
+}
+
 export default function SpecSheet({ spec }: { spec: WatchSpec }) {
   const value =
     spec.estValueLow && spec.estValueHigh
       ? `${money(spec.estValueLow)} – ${money(spec.estValueHigh)}`
       : null;
+
+  const eraNotes: Array<{ label: string; text: string }> = [];
+  if (spec.yearProduced && !chipworthy(spec.yearProduced))
+    eraNotes.push({ label: "Year(s)", text: spec.yearProduced });
+  if (spec.productionStatus && !chipworthy(spec.productionStatus))
+    eraNotes.push({ label: "Production", text: spec.productionStatus });
+  if (spec.limitedEdition && !chipworthy(spec.limitedEdition))
+    eraNotes.push({ label: "Limited edition", text: spec.limitedEdition });
 
   return (
     <div className="min-w-0 space-y-6">
@@ -107,24 +124,37 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
         <div className="card min-w-0 space-y-4 p-4 sm:p-5">
           <div className="flex min-w-0 flex-col items-start justify-between gap-3 min-[400px]:flex-row min-[400px]:items-center">
             <p className="label">Era &amp; provenance</p>
-            <div className="flex min-w-0 flex-wrap gap-2">
-              {spec.yearProduced && (
-                <span className="max-w-full break-words rounded-full border border-accent px-2.5 py-1 text-sm leading-snug text-accent [overflow-wrap:anywhere]">
-                  {spec.yearProduced}
-                </span>
-              )}
-              {spec.productionStatus && (
-                <span className="max-w-full break-words rounded-full border border-line px-2.5 py-1 text-sm leading-snug text-muted [overflow-wrap:anywhere]">
-                  {spec.productionStatus}
-                </span>
-              )}
-              {spec.limitedEdition && (
-                <span className="max-w-full break-words rounded-full border border-accent px-2.5 py-1 text-sm leading-snug text-accent [overflow-wrap:anywhere]">
-                  {spec.limitedEdition}
-                </span>
-              )}
-            </div>
+            {(chipworthy(spec.yearProduced) ||
+              chipworthy(spec.productionStatus) ||
+              chipworthy(spec.limitedEdition)) && (
+              <div className="flex min-w-0 flex-wrap gap-2">
+                {chipworthy(spec.yearProduced) && (
+                  <span className="max-w-full break-words rounded-full border border-accent px-2.5 py-1 text-sm leading-snug text-accent [overflow-wrap:anywhere]">
+                    {spec.yearProduced}
+                  </span>
+                )}
+                {chipworthy(spec.productionStatus) && (
+                  <span className="max-w-full break-words rounded-full border border-line px-2.5 py-1 text-sm leading-snug text-muted [overflow-wrap:anywhere]">
+                    {spec.productionStatus}
+                  </span>
+                )}
+                {chipworthy(spec.limitedEdition) && (
+                  <span className="max-w-full break-words rounded-full border border-accent px-2.5 py-1 text-sm leading-snug text-accent [overflow-wrap:anywhere]">
+                    {spec.limitedEdition}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
+
+          {eraNotes.map((note) => (
+            <div key={note.label} className="min-w-0">
+              <p className="label mb-1.5 text-sm">{note.label}</p>
+              <p className="break-words leading-relaxed text-muted [overflow-wrap:anywhere]">
+                {note.text}
+              </p>
+            </div>
+          ))}
 
           {spec.history && (
             <p className="break-words leading-relaxed text-muted [overflow-wrap:anywhere]">
