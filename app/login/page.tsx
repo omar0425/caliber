@@ -26,7 +26,7 @@ export default async function LoginPage({
   return (
     <div className="min-h-dvh grid lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] bg-base">
       <section className="relative hidden lg:flex min-w-0 overflow-hidden border-r border-line/70 p-12 xl:p-14 2xl:p-20">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_28%,rgba(200,164,92,0.16),transparent_32%),radial-gradient(circle_at_72%_72%,rgba(230,207,154,0.08),transparent_35%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_28%,rgba(184,242,78,0.16),transparent_32%),radial-gradient(circle_at_72%_72%,rgba(143,216,255,0.07),transparent_35%)]" />
         <div className="absolute -left-52 top-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-accent/15" />
         <div className="absolute -left-36 top-1/2 -translate-y-1/2 w-[28rem] h-[28rem] rounded-full border border-accent/10" />
         <div className="relative z-10 flex flex-col justify-between max-w-2xl">

@@ -1,23 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  /* ── Colour: gold on near-black (LOCKED palette) ─────────────────── */
-  --color-base: #0b0b0e;
-  --color-surface: #141419;
-  --color-surface-2: #1c1c23;
-  --color-line: #2a2a33;
-  --color-ink: #f2f1f5;
-  --color-muted: #b6b6c0;
-  --color-accent: #c8a45c;
-  --color-accent-soft: #e6cf9a;
-  --color-danger: #e5675f;
-  --color-warn: #e0b24a;
-  --color-good: #6fbf8b;
+  /* ── Colour: LUME ─────────────────────────────────────────────────
+     True black ground. The accent is Super-LumiNova, not gold —
+     information emits light the way a dial does in the dark.
+     Gold survives only as --color-money, for currency. */
+  --color-base: #050506;
+  --color-surface: #0c0d0f;
+  --color-surface-2: #131519;
+  --color-surface-3: #1a1d22; /* card nested inside a card */
+  --color-line: #1e2126;
+  --color-line-soft: #16181c;
+  --color-ink: #edf0f2;
+  --color-muted: #7c8489;
+  --color-accent: #b8f24e; /* lume */
+  --color-accent-soft: #d2ff7a;
+  --color-ice: #8fd8ff; /* secondary signal: wishlist, cool data */
+  --color-money: #c8a45c; /* the retired gold — currency only */
+  --color-danger: #ff5c4d;
+  --color-warn: #ffb020;
+  --color-good: #7df9c4;
 
   /* ── Type ────────────────────────────────────────────────────────── */
-  --font-serif: var(--font-display), Georgia, serif;
-  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), monospace;
+  --font-serif: var(--font-display), Didot, Georgia, serif;
+  --font-sans: var(--font-grotesk), system-ui, sans-serif;
+  --font-mono: var(--font-mono-tech), ui-monospace, monospace;
 
   /* App type scale. 13px floor — nothing smaller ships (accessibility).
      xs/sm are remapped from Tailwind defaults to the sizes this app already
@@ -32,16 +39,19 @@
      xl 20, 2xl 24, 3xl 30, 4xl 36, 5xl 48 */
 
   --leading-body: 1.6;
-  --tracking-label: 0.06em;
+  --tracking-label: 0.2em; /* technical labels run wide */
 
-  /* ── Elevation (tuned for gold-on-black) ─────────────────────────── */
-  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
-  --shadow-overlay: 0 24px 80px rgba(0, 0, 0, 0.6);
-  --shadow-focus: 0 0 0 3px rgba(200, 164, 92, 0.18);
+  /* ── Elevation ────────────────────────────────────────────────────
+     Depth comes from hairlines and lume bloom, not drop shadows. */
+  --shadow-card: none;
+  --shadow-overlay: 0 24px 80px rgba(0, 0, 0, 0.72);
+  --shadow-focus: 0 0 0 3px rgba(184, 242, 78, 0.22);
+  --glow-lume: 0 0 12px rgba(184, 242, 78, 0.45);
 
-  /* ── Radius ──────────────────────────────────────────────────────── */
-  --radius-card: 1rem; /* 16px — .card, .paper */
-  --radius-control: 10px; /* buttons, inputs */
+  /* ── Radius ───────────────────────────────────────────────────────
+     A technical grid has no rounded corners. */
+  --radius-card: 0px;
+  --radius-control: 2px;
 
   /* ── Motion ──────────────────────────────────────────────────────── */
   --duration-fast: 150ms; /* hover/focus feedback */
@@ -61,7 +71,7 @@
 
   body {
     background:
-      radial-gradient(1200px 600px at 50% -10%, #17171f 0%, transparent 60%),
+      radial-gradient(1100px 520px at 50% -12%, rgba(184, 242, 78, 0.05) 0%, transparent 62%),
       var(--color-base);
     color: var(--color-ink);
     font-family: var(--font-sans);
@@ -91,7 +101,7 @@
   }
 
   .card {
-    background: linear-gradient(180deg, var(--color-surface) 0%, #101015 100%);
+    background: var(--color-surface);
     border: 1px solid var(--color-line);
     border-radius: var(--radius-card);
     min-width: 0;
@@ -128,10 +138,13 @@
     max-width: 100%;
     text-align: center;
   }
+  /* Primary action: lume on black, and it glows. */
   .btn-gold {
-    background: linear-gradient(180deg, var(--color-accent-soft), var(--color-accent));
-    color: #1a1408;
+    background: var(--color-accent);
+    color: #0a1000;
     border: 1px solid var(--color-accent);
+    box-shadow: var(--glow-lume);
+    letter-spacing: 0.02em;
   }
   .btn-ghost {
     background: var(--color-surface-2);
@@ -189,13 +202,29 @@
     box-shadow: var(--shadow-focus);
   }
 
+  /* Technical label: mono, wide-tracked, quiet. Sits at the 13px floor. */
   .label {
-    font-size: 0.9rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
     line-height: 1.4;
     text-transform: uppercase;
     letter-spacing: var(--tracking-label);
     color: var(--color-muted);
-    font-weight: 600;
+    font-weight: 500;
+  }
+
+  /* Currency. The only place the old gold still appears. */
+  .money {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-money);
+  }
+
+  /* Oversized figures — the numbers are the headline. */
+  .figure {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    font-weight: 700;
   }
 
   .paper {
@@ -213,7 +242,7 @@
     position: absolute;
     inset: 0;
     transform: translateX(-100%);
-    background: linear-gradient(90deg, transparent, rgba(200, 164, 92, 0.12), transparent);
+    background: linear-gradient(90deg, transparent, rgba(184, 242, 78, 0.14), transparent);
     animation: shimmer 1.4s infinite;
   }
 
