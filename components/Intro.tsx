@@ -6,9 +6,12 @@ import { useEffect, useRef, useState } from "react";
 // wheel catches gold light and beats, the camera pulls back through the gear
 // train, the movement resolves into a dial, the hands sweep backwards and
 // settle on the real current time, and CALIBER sets where a maker's name sits.
+// Then the coda: the dial pumps twice like a heartbeat (the text never moves)
+// and the frame holds still long enough to actually read the ending before
+// the overlay fades into the app.
 //
 // Pure CSS + inline SVG: zero network calls, zero AI calls, no dependencies.
-// ~5.5s, skippable at any frame (Skip button is focusable on frame one, Esc
+// ~8.2s, skippable at any frame (Skip button is focusable on frame one, Esc
 // also works). Never rendered at all under prefers-reduced-motion — the gate
 // upstream guarantees that; the stylesheet's reduced-motion clamp is the
 // second line of defense.
@@ -16,7 +19,7 @@ import { useEffect, useRef, useState } from "react";
 // Keep this in step with the .intro-* keyframe delays in globals.css: the
 // stylesheet drives the picture, this only decides when the overlay leaves.
 
-const FILM_MS = 5600;
+const FILM_MS = 8200;
 
 export default function Intro({ onDone }: { onDone: () => void }) {
   const [leaving, setLeaving] = useState(false);
@@ -26,8 +29,9 @@ export default function Intro({ onDone }: { onDone: () => void }) {
     if (doneRef.current) return;
     doneRef.current = true;
     setLeaving(true);
-    // Brief cross-fade out, then hand off to the welcome modal.
-    window.setTimeout(onDone, 300);
+    // Unhurried cross-fade out (matches duration-[600ms] on the overlay),
+    // then hand off to the welcome modal.
+    window.setTimeout(onDone, 600);
   };
 
   useEffect(() => {
@@ -52,7 +56,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
     <div
       role="dialog"
       aria-label="Caliber — every watch is a time machine"
-      className={`fixed inset-0 z-[70] flex items-center justify-center bg-base transition-opacity duration-300 ${
+      className={`fixed inset-0 z-[70] flex items-center justify-center bg-base transition-opacity duration-[600ms] ${
         leaving ? "opacity-0" : "opacity-100"
       }`}
       style={{
@@ -129,7 +133,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
         style={{ top: "calc(50% + 118px)" }}>
         CALIBER
       </p>
-      <p className="intro-tagline absolute inset-x-0 text-center text-base text-muted"
+      <p className="intro-tagline absolute inset-x-0 text-center text-muted"
         style={{ top: "calc(50% + 168px)" }}>
         Every watch is a time machine.
       </p>

@@ -74,7 +74,7 @@ export default function PhotoGallery({
     <div className="card min-w-0 space-y-4 p-4 sm:p-6">
       <div className="flex flex-col items-start justify-between gap-3 min-[400px]:flex-row min-[400px]:items-center">
         <h3 className="font-serif text-2xl">Photos</h3>
-        <button onClick={() => inputRef.current?.click()} disabled={busy} className="btn btn-ghost min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
+        <button onClick={() => inputRef.current?.click()} disabled={busy} className="btn btn-ghost min-h-12 w-full max-w-full min-[400px]:w-auto">
           {busy ? "Uploading…" : "+ Add photos"}
         </button>
         <input

@@ -37,7 +37,7 @@ export default function SpendWarning() {
 
   return (
     <div
-      className="w-full text-base"
+      className="w-full"
       style={{ background: over ? "rgba(229,103,95,0.12)" : "rgba(224,178,74,0.12)", borderBottom: `1px solid ${color}` }}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-5 py-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 items-start">
@@ -66,7 +66,7 @@ export default function SpendWarning() {
         </p>
         <button
           onClick={() => setDismissed(true)}
-          className="col-start-2 min-h-11 justify-self-start text-base font-medium opacity-80 hover:opacity-100"
+          className="col-start-2 min-h-11 justify-self-start font-medium opacity-80 hover:opacity-100"
           style={{ color }}
         >
           Dismiss

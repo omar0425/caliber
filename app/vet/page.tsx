@@ -103,7 +103,7 @@ export default function VetPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-serif text-3xl">Vet a purchase</h1>
-        <p className="text-base text-muted mt-1 leading-relaxed">
+        <p className="text-muted mt-1 leading-relaxed">
           Thinking of buying? Upload the seller&apos;s photo and paste the listing. Caliber flags
           fakes, franken parts, and prices that are too good to be true.
         </p>
@@ -141,7 +141,7 @@ export default function VetPage() {
             </div>
           )}
           {!loading && !result && (
-            <div className="h-full flex items-center justify-center text-center text-muted text-base">
+            <div className="h-full flex items-center justify-center text-center text-muted">
               Your authenticity report will appear here.
             </div>
           )}
@@ -163,7 +163,7 @@ export default function VetPage() {
         <div className="flex items-end justify-between gap-2">
           <h2 className="font-serif text-2xl">Recent vet reports</h2>
           {history && history.length > 0 && (
-            <p className="text-base text-muted">{history.length} saved</p>
+            <p className="text-muted">{history.length} saved</p>
           )}
         </div>
         {history === null ? (

@@ -8,7 +8,7 @@ export default function VetReportView({ result }: { result: VetResult }) {
     <div className="space-y-5">
       <div>
         {(result.brand || result.model) && (
-          <p className="text-accent text-base uppercase tracking-wide break-words">
+          <p className="text-accent uppercase tracking-wide break-words">
             {result.brand} {result.model} {result.referenceNumber ? `· ${result.referenceNumber}` : ""}
           </p>
         )}
@@ -17,19 +17,19 @@ export default function VetReportView({ result }: { result: VetResult }) {
         </div>
       </div>
 
-      <p className="text-base text-muted leading-relaxed">{result.summary}</p>
+      <p className="text-muted leading-relaxed">{result.summary}</p>
 
       {(result.estValueLow || result.fairPriceNote) && (
         <div className="card p-4 space-y-1">
           {result.estValueLow && result.estValueHigh && (
             <div className="flex flex-col min-[400px]:flex-row min-[400px]:justify-between gap-1 min-[400px]:gap-3">
               <span className="text-[0.95rem] font-semibold text-muted">Fair market range</span>
-              <span className="text-base font-medium text-accent-soft break-words">
+              <span className="font-medium text-accent-soft break-words">
                 ${result.estValueLow.toLocaleString()} – ${result.estValueHigh.toLocaleString()}
               </span>
             </div>
           )}
-          {result.fairPriceNote && <p className="text-base text-muted leading-relaxed">{result.fairPriceNote}</p>}
+          {result.fairPriceNote && <p className="text-muted leading-relaxed">{result.fairPriceNote}</p>}
         </div>
       )}
 
@@ -39,8 +39,8 @@ export default function VetReportView({ result }: { result: VetResult }) {
           <div key={i} className="flex gap-3 p-3 rounded-lg bg-surface-2 border border-line/60">
             <SeverityBadge severity={f.severity} className="mt-0.5" />
             <div className="min-w-0">
-              <p className="text-base font-semibold text-ink">{f.title}</p>
-              <p className="text-base text-muted leading-relaxed">{f.detail}</p>
+              <p className="font-semibold text-ink">{f.title}</p>
+              <p className="text-muted leading-relaxed">{f.detail}</p>
             </div>
           </div>
         ))}

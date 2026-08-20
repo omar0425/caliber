@@ -77,7 +77,7 @@ export default function WelcomeModal({ onFinish }: { onFinish: () => void }) {
             you exactly how). Until then, AI analysis stays paused while you can still look around
             the collection features.
           </p>
-          <p className="text-base text-muted mt-3">
+          <p className="text-muted mt-3">
             One thing to remember: the AI is smart but not perfect — it can make mistakes, so
             double-check anything important before you buy or insure.
           </p>
@@ -108,7 +108,7 @@ export default function WelcomeModal({ onFinish }: { onFinish: () => void }) {
       >
         <button
           onClick={finish}
-          className="absolute top-3 right-3 min-h-11 px-2 text-muted hover:text-ink text-base"
+          className="absolute top-3 right-3 min-h-11 px-2 text-muted hover:text-ink"
           aria-label="Skip introduction"
         >
           Skip

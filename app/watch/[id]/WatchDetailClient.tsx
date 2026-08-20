@@ -177,7 +177,7 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={watch.imageUrl} alt={`${watch.brand} ${watch.model}`} className="w-full h-full object-cover" />
           ) : (
-            <span className="text-base text-muted">No photo</span>
+            <span className="text-muted">No photo</span>
           )}
         </div>
 
@@ -211,7 +211,7 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="label text-sm">Status</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)} className="input mt-1 min-h-12 text-base">
+              <select value={status} onChange={(e) => setStatus(e.target.value)} className="input mt-1 min-h-12">
                 <option value="owned">Owned</option>
                 <option value="wishlist">Wishlist</option>
                 <option value="watching">Watching</option>
@@ -219,26 +219,26 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
             </div>
             <div>
               <label className="label text-sm">Condition</label>
-              <input value={condition} onChange={(e) => setCondition(e.target.value)} placeholder="e.g. Mint, full set" className="input mt-1 min-h-12 text-base" />
+              <input value={condition} onChange={(e) => setCondition(e.target.value)} placeholder="e.g. Mint, full set" className="input mt-1 min-h-12" />
             </div>
             <div>
               <label className="label text-sm">Purchase price (USD)</label>
-              <input value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} inputMode="decimal" placeholder="e.g. 8500" className="input mt-1 min-h-12 text-base" />
+              <input value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} inputMode="decimal" placeholder="e.g. 8500" className="input mt-1 min-h-12" />
             </div>
             <div>
               <label className="label text-sm">Owner</label>
-              <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="e.g. mike@example.com" className="input mt-1 min-h-12 text-base" />
+              <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="e.g. mike@example.com" className="input mt-1 min-h-12" />
             </div>
           </div>
           <div>
             <label className="label text-sm">Notes</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Service history, provenance, box & papers…" className="input mt-1 resize-y text-base" />
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Service history, provenance, box & papers…" className="input mt-1 resize-y" />
           </div>
           <div className="no-print flex flex-col gap-3 min-[400px]:flex-row min-[400px]:items-center">
-            <button onClick={save} disabled={saving} className="btn btn-gold min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
+            <button onClick={save} disabled={saving} className="btn btn-gold min-h-12 w-full max-w-full min-[400px]:w-auto">
               {saving ? "Saving…" : saved ? "Saved ✓" : "Save details"}
             </button>
-            <button onClick={remove} disabled={deleting} className="btn btn-danger min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
+            <button onClick={remove} disabled={deleting} className="btn btn-danger min-h-12 w-full max-w-full min-[400px]:w-auto">
               {deleting ? "Removing…" : "Remove"}
             </button>
           </div>

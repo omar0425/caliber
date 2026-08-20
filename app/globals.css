@@ -12,7 +12,10 @@
   --color-line: #1e2126;
   --color-line-soft: #16181c;
   --color-ink: #edf0f2;
-  --color-muted: #7c8489;
+  /* Secondary text. Lifted from #7c8489 — that read as barely-there grey on
+     phones (and fell under 4.5:1 on surface-3). Keep muted ≥4.5:1 on every
+     surface it sits on, including nested cards. */
+  --color-muted: #97a1a8;
   --color-accent: #b8f24e; /* lume */
   --color-accent-soft: #d2ff7a;
   --color-ice: #8fd8ff; /* secondary signal: wishlist, cool data */
@@ -320,16 +323,31 @@
   }
 }
 
-/* ── Cold open (Concept A) — one continuous 5.6s film, CSS only ──────
+/* ── Cold open (Concept A) — one continuous 8.2s film, CSS only ──────
    The extra time is spent letting the escapement beat before the pull
    back, and on a longer rewind — NOT by slowing everything down. The
    beat keeps its original rate (4 steps per 0.7s); it simply runs four
-   times as long. FILM_MS in components/Intro.tsx must match 5.6s. */
+   times as long.
+   Ending (the coda): once the wordmark and tagline have resolved
+   (~5.45s), the dial pumps twice like a heartbeat — scale and lume
+   bloom together, text untouched — while CALIBER blooms with a lume
+   text-glow. Then the whole frame holds perfectly still, resting a
+   notch brighter than before, so the ending can actually be read and
+   feels like a lit tableau; only then does the overlay fade into the
+   app (600ms cross-fade in Intro.tsx). Film 5.6s + 1.2s heartbeat +
+   1.35s hold = 8.2s. FILM_MS in components/Intro.tsx must match 8.2s.
+   The heartbeat/glow-beat coda animations deliberately use fill-mode
+   `forwards`, not `both` — a backwards fill would pin the scene to the
+   coda's first frame during its long delay and cancel the pullback. */
 .intro-scene {
-  animation: intro-pullback 5.6s var(--ease-standard) both;
+  animation:
+    intro-pullback 5.6s var(--ease-standard) both,
+    intro-heartbeat 1.2s ease-in-out 5.65s forwards;
 }
 .intro-glow {
-  animation: intro-glow 5.6s ease-out both;
+  animation:
+    intro-glow 5.6s ease-out both,
+    intro-glow-beat 1.2s ease-in-out 5.65s forwards;
 }
 .intro-escapement {
   opacity: 0;
@@ -354,7 +372,9 @@
 }
 .intro-wordmark {
   opacity: 0;
-  animation: intro-wordmark 0.55s var(--ease-standard) 4.55s both;
+  animation:
+    intro-wordmark 0.55s var(--ease-standard) 4.55s both,
+    intro-wordmark-shine 1.6s var(--ease-standard) 5.65s forwards;
 }
 .intro-tagline {
   opacity: 0;
@@ -394,6 +414,35 @@
 @keyframes intro-wordmark {
   from { opacity: 0; letter-spacing: 0.55em; }
   to { opacity: 1; letter-spacing: 0.35em; }
+}
+/* Two pumps — lub-dub — then dead still for the rest of the coda. */
+@keyframes intro-heartbeat {
+  0% { transform: scale(1); }
+  11% { transform: scale(1.06); }
+  24% { transform: scale(1); }
+  38% { transform: scale(1.06); }
+  58% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+/* The lume bloom surges with each pump, then rests brighter than it
+   started — the held final frame stays lit. */
+@keyframes intro-glow-beat {
+  0% { opacity: 0.7; }
+  11% { opacity: 1; }
+  24% { opacity: 0.72; }
+  38% { opacity: 1; }
+  58% { opacity: 0.85; }
+  100% { opacity: 0.85; }
+}
+/* CALIBER charges with lume during the heartbeat and stays glowing —
+   pure text-shadow, the letters never move. */
+@keyframes intro-wordmark-shine {
+  from { text-shadow: 0 0 0 rgba(184, 242, 78, 0); }
+  to {
+    text-shadow:
+      0 0 18px rgba(184, 242, 78, 0.5),
+      0 0 46px rgba(184, 242, 78, 0.28);
+  }
 }
 
 /* ── Concept C: the everyday app-open tick (400ms, once per page load) ─ */

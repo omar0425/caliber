@@ -59,5 +59,10 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon-.*\\.png|manifest\\.webmanifest).*)"],
+  // apple-touch-icon.png must stay public: iOS fetches it without cookies
+  // when saving to the home screen, and an auth redirect would hand it the
+  // login page's HTML instead of the icon.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icon-.*\\.png|apple-touch-icon\\.png|manifest\\.webmanifest).*)",
+  ],
 };

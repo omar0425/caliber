@@ -33,7 +33,7 @@ export default async function PortfolioPage() {
     <div className="space-y-8">
       <div>
         <h1 className="font-serif text-3xl">Portfolio</h1>
-        <p className="text-base text-muted mt-1 leading-relaxed">
+        <p className="text-muted mt-1 leading-relaxed">
           {p.holdings.length} owned {p.holdings.length === 1 ? "piece" : "pieces"} ·{" "}
           {p.costKnownCount} with a recorded cost basis
         </p>
@@ -42,7 +42,7 @@ export default async function PortfolioPage() {
 
       {p.holdings.length === 0 ? (
         <div className="card p-6 sm:p-12 text-center">
-          <p className="text-base text-muted">No owned watches yet.</p>
+          <p className="text-muted">No owned watches yet.</p>
           <Link href="/identify" className="btn btn-gold mt-4 inline-flex w-full min-[400px]:w-auto">Add a watch</Link>
         </div>
       ) : (
@@ -71,7 +71,7 @@ export default async function PortfolioPage() {
                   <p className="text-[0.95rem] mt-1" style={{ color: gainColor(p.best.gain) }}>{pct(p.best.gainPct)}</p>
                 </>
               ) : (
-                <p className="text-muted text-base mt-2 leading-relaxed">Add purchase prices to track ROI</p>
+                <p className="text-muted mt-2 leading-relaxed">Add purchase prices to track ROI</p>
               )}
             </div>
           </div>
@@ -97,11 +97,11 @@ export default async function PortfolioPage() {
                   href={`/watch/${h.id}`}
                   className="block p-4 hover:bg-surface-2/50"
                 >
-                  <p className="text-base font-semibold leading-snug break-words">
+                  <p className="font-semibold leading-snug break-words">
                     <span className="text-accent-soft">{h.brand}</span>{" "}
                     <span className="text-ink">{h.model}</span>
                   </p>
-                  <dl className="mt-3 space-y-2 text-base">
+                  <dl className="mt-3 space-y-2">
                     <div className="flex items-start justify-between gap-4">
                       <dt className="text-muted">Purchase cost</dt>
                       <dd className="text-right break-words">{money(h.cost)}</dd>
@@ -121,7 +121,7 @@ export default async function PortfolioPage() {
               ))}
             </div>
             <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full text-base min-w-[560px]">
+              <table className="w-full min-w-[560px]">
                 <thead>
                   <tr className="text-left text-muted border-b border-line/60">
                     <th className="px-6 py-3 font-medium">Watch</th>

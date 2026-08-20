@@ -48,7 +48,7 @@ export default function GettingStarted({
     <section className="card p-4 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h2 className="font-serif text-2xl">Getting started</h2>
-        <button onClick={() => setDismissed(true)} className="min-h-11 px-2 text-base text-muted hover:text-ink">
+        <button onClick={() => setDismissed(true)} className="min-h-11 px-2 text-muted hover:text-ink">
           Hide
         </button>
       </div>
@@ -70,8 +70,8 @@ export default function GettingStarted({
                 {it.done ? "✓" : i + 1}
               </span>
               <div className="flex-1 min-w-0">
-                <p className={`text-base font-semibold ${it.done ? "text-muted line-through" : "text-ink"}`}>{it.title}</p>
-                <p className="text-base text-muted leading-relaxed mt-0.5">{it.desc}</p>
+                <p className={`font-semibold ${it.done ? "text-muted line-through" : "text-ink"}`}>{it.title}</p>
+                <p className="text-muted leading-relaxed mt-0.5">{it.desc}</p>
               </div>
             </div>
             {!it.done && (

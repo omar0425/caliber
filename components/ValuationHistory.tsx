@@ -44,7 +44,7 @@ export default function ValuationHistory({ watchId, valuations }: { watchId: str
       <div className="mb-4 flex flex-col items-start justify-between gap-3 min-[400px]:flex-row min-[400px]:items-center">
         <p className="label text-sm">Valuation history</p>
         {!adding && (
-          <button onClick={() => setAdding(true)} className="btn btn-ghost no-print min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
+          <button onClick={() => setAdding(true)} className="btn btn-ghost no-print min-h-12 w-full max-w-full min-[400px]:w-auto">
             + Update value
           </button>
         )}
@@ -58,7 +58,7 @@ export default function ValuationHistory({ watchId, valuations }: { watchId: str
               onChange={(e) => setLow(e.target.value)}
               inputMode="decimal"
               placeholder="Low (USD)"
-              className="input min-h-12 min-w-0 text-base"
+              className="input min-h-12 min-w-0"
             />
             <span className="hidden text-muted min-[400px]:block">–</span>
             <input
@@ -66,21 +66,21 @@ export default function ValuationHistory({ watchId, valuations }: { watchId: str
               onChange={(e) => setHigh(e.target.value)}
               inputMode="decimal"
               placeholder="High (optional)"
-              className="input min-h-12 min-w-0 text-base"
+              className="input min-h-12 min-w-0"
             />
           </div>
           <input
             value={source}
             onChange={(e) => setSource(e.target.value)}
             placeholder="Source (e.g. Chrono24, dealer quote)"
-            className="input min-h-12 min-w-0 text-base"
+            className="input min-h-12 min-w-0"
           />
           {error && <p className="break-words text-[15px] leading-relaxed text-danger [overflow-wrap:anywhere]">{error}</p>}
           <div className="flex flex-col gap-2 min-[400px]:flex-row">
-            <button onClick={save} disabled={saving || !low.trim()} className="btn btn-gold min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
+            <button onClick={save} disabled={saving || !low.trim()} className="btn btn-gold min-h-12 w-full max-w-full min-[400px]:w-auto">
               {saving ? "Saving…" : "Record value"}
             </button>
-            <button onClick={() => { setAdding(false); setError(null); }} className="btn btn-ghost min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
+            <button onClick={() => { setAdding(false); setError(null); }} className="btn btn-ghost min-h-12 w-full max-w-full min-[400px]:w-auto">
               Cancel
             </button>
           </div>

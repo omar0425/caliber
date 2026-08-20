@@ -34,7 +34,7 @@ export function WindingState({ label = "Winding up…" }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-8 text-center" role="status" aria-label={label}>
       <WindingMark />
-      <p className="text-base text-muted">{label}</p>
+      <p className="text-muted">{label}</p>
     </div>
   );
 }
@@ -59,7 +59,7 @@ export function EmptyState({
         <WindingMark size={44} className="winding-mark-still" />
       </div>
       <p className="text-lg font-medium">{title}</p>
-      {body && <p className="text-base text-muted leading-relaxed max-w-md mx-auto">{body}</p>}
+      {body && <p className="text-muted leading-relaxed max-w-md mx-auto">{body}</p>}
       {action && <div className="pt-2 flex justify-center">{action}</div>}
     </div>
   );
@@ -91,7 +91,7 @@ export function ErrorState({
         {body}
       </p>
       {onRetry && (
-        <button onClick={onRetry} className="btn btn-gold min-h-12 w-full text-base min-[400px]:w-auto">
+        <button onClick={onRetry} className="btn btn-gold min-h-12 w-full min-[400px]:w-auto">
           {retryLabel}
         </button>
       )}
@@ -116,7 +116,7 @@ export function NoticeBanner({
   role?: "status" | "alert";
 }) {
   return (
-    <p role={role} className={`text-base border rounded-lg p-3 leading-relaxed ${NOTICE_TONE[tone]}`}>
+    <p role={role} className={`border rounded-lg p-3 leading-relaxed ${NOTICE_TONE[tone]}`}>
       {children}
     </p>
   );

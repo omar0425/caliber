@@ -23,7 +23,7 @@ export default function ValueChart({ data, height = 260 }: { data: Point[]; heig
 
   if (data.length === 0) {
     return (
-      <div className="h-48 flex items-center justify-center text-center text-muted text-base leading-relaxed px-2">
+      <div className="h-48 flex items-center justify-center text-center text-muted leading-relaxed px-2">
         No valuation history yet — add watches and refresh their values over time.
       </div>
     );

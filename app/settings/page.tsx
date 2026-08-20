@@ -221,7 +221,7 @@ export default function SettingsPage() {
     <div className="max-w-2xl space-y-6">
       <div>
         <h1 className="font-serif text-3xl">Settings</h1>
-        <p className="text-base text-muted mt-1 leading-relaxed">Connect your OpenAI API key to turn on real AI analysis.</p>
+        <p className="text-muted mt-1 leading-relaxed">Connect your OpenAI API key to turn on real AI analysis.</p>
       </div>
       <div className="rule" />
 
@@ -235,7 +235,7 @@ export default function SettingsPage() {
           <p className="font-medium">
             {live ? "Live — real AI enabled" : "AI paused — no API key configured"}
           </p>
-          <p className="text-base text-muted leading-relaxed break-words">
+          <p className="text-muted leading-relaxed break-words">
             {status?.source === "app" && `Key configured in-app (${status.masked}).`}
             {status?.source === "env" && "Key loaded from the OPENAI_API_KEY environment variable."}
             {status?.source === "none" && "No API key set. Add one below to analyze real photos."}
@@ -271,10 +271,10 @@ export default function SettingsPage() {
         </div>
 
         {error && (
-          <p className="text-danger text-base bg-danger/10 border border-danger/30 rounded-lg p-3">{error}</p>
+          <p className="text-danger bg-danger/10 border border-danger/30 rounded-lg p-3">{error}</p>
         )}
         {notice && (
-          <p className="text-good text-base bg-good/10 border border-good/30 rounded-lg p-3">{notice}</p>
+          <p className="text-good bg-good/10 border border-good/30 rounded-lg p-3">{notice}</p>
         )}
 
         <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-center gap-3">
@@ -291,7 +291,7 @@ export default function SettingsPage() {
 
       <div className="card p-4 sm:p-6">
         <h3 className="font-serif text-lg mb-2">How your key is used</h3>
-        <ul className="text-base text-muted space-y-2 list-disc pl-5 leading-relaxed">
+        <ul className="text-muted space-y-2 list-disc pl-5 leading-relaxed">
           <li>Powers watch recognition, spec research, and the authenticity vetting engine.</li>
           <li>
             {status?.source === "app" && status.protectedAtRest
@@ -307,7 +307,7 @@ export default function SettingsPage() {
       <div className="card p-4 sm:p-6 space-y-4">
         <div>
           <h3 className="font-serif text-lg">AI usage &amp; budget</h3>
-          <p className="text-base text-muted mt-1 leading-relaxed">
+          <p className="text-muted mt-1 leading-relaxed">
             Estimated spend from your analyses. Set a monthly budget to get a warning banner as you
             approach it. Caliber blocks new AI calls when the budget is reached. This remains an
             estimate—check actual usage on{" "}
@@ -368,7 +368,7 @@ export default function SettingsPage() {
               <button onClick={() => { setBudgetInput(""); }} className="btn btn-ghost w-full min-[400px]:w-auto">Clear</button>
             )}
           </div>
-          {budgetMsg && <p className="text-base text-muted mt-2">{budgetMsg}</p>}
+          {budgetMsg && <p className="text-muted mt-2">{budgetMsg}</p>}
           <p className="text-[0.95rem] text-muted mt-2 leading-relaxed">
             You&apos;ll see an amber banner at 80%. At 100%, new AI analyses are blocked until the
             budget is raised or the month changes.
@@ -386,7 +386,7 @@ export default function SettingsPage() {
       >
         <div>
           <h3 className="font-serif text-lg">Login security</h3>
-          <p className="text-base text-muted mt-1 leading-relaxed">
+          <p className="text-muted mt-1 leading-relaxed">
             Change the password used by the Caliber sign-in screen. The new password is stored as
             a salted one-way hash and takes effect immediately.
           </p>
@@ -434,12 +434,12 @@ export default function SettingsPage() {
         </div>
 
         {passwordError && (
-          <p className="text-danger text-base bg-danger/10 border border-danger/30 rounded-lg p-3">
+          <p className="text-danger bg-danger/10 border border-danger/30 rounded-lg p-3">
             {passwordError}
           </p>
         )}
         {passwordNotice && (
-          <p className="text-good text-base bg-good/10 border border-good/30 rounded-lg p-3">
+          <p className="text-good bg-good/10 border border-good/30 rounded-lg p-3">
             {passwordNotice}
           </p>
         )}
@@ -460,14 +460,14 @@ export default function SettingsPage() {
       <div className="card p-4 sm:p-6 space-y-4">
         <div>
           <h3 className="font-serif text-lg">Ownership</h3>
-          <p className="text-base text-muted mt-1 leading-relaxed">
+          <p className="text-muted mt-1 leading-relaxed">
             Access is protected by the deployment login. The Owner field lets you distinguish
             watches when a household shares one Caliber deployment.
           </p>
         </div>
 
         {ownership && (
-          <p className="text-base text-muted leading-relaxed">
+          <p className="text-muted leading-relaxed">
             {ownership.total} watch{ownership.total === 1 ? "" : "es"} in the database
             {" — "}
             {ownership.unassigned} with no owner recorded
@@ -494,7 +494,7 @@ export default function SettingsPage() {
                 : `Mark ${ownership ? ownership.unassigned : "all"} unassigned watch${ownership?.unassigned === 1 ? "" : "es"} as theirs`}
             </button>
           </div>
-          {ownerMsg && <p className="text-base text-muted mt-2">{ownerMsg}</p>}
+          {ownerMsg && <p className="text-muted mt-2">{ownerMsg}</p>}
           <p className="text-[0.95rem] text-muted mt-2 leading-relaxed">
             Only watches without an owner are touched, so it&apos;s safe to run again later for a
             different person — already-assigned watches keep their owner.
@@ -506,7 +506,7 @@ export default function SettingsPage() {
       <div className="card p-4 sm:p-6 space-y-4">
         <div>
           <h3 className="font-serif text-lg">Backup &amp; export</h3>
-          <p className="text-base text-muted mt-1 leading-relaxed">
+          <p className="text-muted mt-1 leading-relaxed">
             Your collection lives in a local database. Export regularly so you never lose it.
           </p>
         </div>
@@ -529,7 +529,7 @@ export default function SettingsPage() {
             }}
           />
         </div>
-        {importMsg && <p className="text-base text-muted">{importMsg}</p>}
+        {importMsg && <p className="text-muted">{importMsg}</p>}
         <p className="text-[0.95rem] text-muted leading-relaxed">
           The appraisal report opens a print-ready page — use your browser&apos;s “Save as PDF” for insurance documentation.
         </p>
