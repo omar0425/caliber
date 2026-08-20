@@ -27,7 +27,14 @@ export default function Nav() {
   return (
     <>
       {/* Top bar */}
-      <header className="sticky top-0 z-30 border-b border-line/70 backdrop-blur bg-base/70">
+      {/* viewportFit is "cover" and the PWA runs standalone, so on a notched
+          iPhone the layout extends under the status bar. Pad the bar by the
+          top inset — the blurred background then sits behind the clock rather
+          than the wordmark colliding with it. */}
+      <header
+        className="sticky top-0 z-30 border-b border-line/70 backdrop-blur bg-base/70"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
         <div className="max-w-6xl mx-auto px-4 h-16 md:min-h-20 md:px-5 md:py-3 flex items-center justify-between gap-2 md:gap-4">
           <Link href="/" className="flex items-center gap-2.5">
             {/* Concept C, the everyday app-open: one 400ms escapement tick.

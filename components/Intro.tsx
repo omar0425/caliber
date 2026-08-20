@@ -8,12 +8,15 @@ import { useEffect, useRef, useState } from "react";
 // settle on the real current time, and CALIBER sets where a maker's name sits.
 //
 // Pure CSS + inline SVG: zero network calls, zero AI calls, no dependencies.
-// ~2.5s, skippable at any frame (Skip button is focusable on frame one, Esc
+// ~5.5s, skippable at any frame (Skip button is focusable on frame one, Esc
 // also works). Never rendered at all under prefers-reduced-motion — the gate
 // upstream guarantees that; the stylesheet's reduced-motion clamp is the
 // second line of defense.
+//
+// Keep this in step with the .intro-* keyframe delays in globals.css: the
+// stylesheet drives the picture, this only decides when the overlay leaves.
 
-const FILM_MS = 2600;
+const FILM_MS = 5600;
 
 export default function Intro({ onDone }: { onDone: () => void }) {
   const [leaving, setLeaving] = useState(false);

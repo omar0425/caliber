@@ -320,41 +320,45 @@
   }
 }
 
-/* ── Cold open (Concept A) — one continuous 2.6s film, CSS only ────── */
+/* ── Cold open (Concept A) — one continuous 5.6s film, CSS only ──────
+   The extra time is spent letting the escapement beat before the pull
+   back, and on a longer rewind — NOT by slowing everything down. The
+   beat keeps its original rate (4 steps per 0.7s); it simply runs four
+   times as long. FILM_MS in components/Intro.tsx must match 5.6s. */
 .intro-scene {
-  animation: intro-pullback 2.6s var(--ease-standard) both;
+  animation: intro-pullback 5.6s var(--ease-standard) both;
 }
 .intro-glow {
-  animation: intro-glow 2.6s ease-out both;
+  animation: intro-glow 5.6s ease-out both;
 }
 .intro-escapement {
   opacity: 0;
   animation:
     intro-fade-in 0.4s ease-out 0.05s both,
-    intro-beat 0.7s steps(4, end) 0.1s both;
+    intro-beat 2.8s steps(16, end) 0.1s both;
 }
 .intro-gears {
   opacity: 0;
-  animation: intro-gears-in 0.8s var(--ease-standard) 0.45s both;
+  animation: intro-gears-in 0.8s var(--ease-standard) 2.45s both;
 }
 .intro-dial {
   opacity: 0;
-  animation: intro-dial-in 0.7s var(--ease-standard) 1.15s both;
+  animation: intro-dial-in 0.7s var(--ease-standard) 3.15s both;
 }
 .intro-hand-hour,
 .intro-hand-minute {
   opacity: 0;
   animation:
-    intro-fade-in 0.2s ease-out 1.55s both,
-    intro-rewind 0.75s var(--ease-emphasized) 1.55s both;
+    intro-fade-in 0.2s ease-out 3.55s both,
+    intro-rewind 1.2s var(--ease-emphasized) 3.55s both;
 }
 .intro-wordmark {
   opacity: 0;
-  animation: intro-wordmark 0.55s var(--ease-standard) 1.95s both;
+  animation: intro-wordmark 0.55s var(--ease-standard) 4.55s both;
 }
 .intro-tagline {
   opacity: 0;
-  animation: intro-fade-in 0.5s ease-out 2.2s both;
+  animation: intro-fade-in 0.5s ease-out 4.95s both;
 }
 
 @keyframes intro-pullback {
@@ -369,9 +373,11 @@
 @keyframes intro-fade-in {
   to { opacity: 1; }
 }
+/* 192deg across 16 steps = 12deg per tick, one tick every 0.175s —
+   the same cadence the 0.7s/4-step version had, sustained for longer. */
 @keyframes intro-beat {
   from { transform: rotate(0deg); }
-  to { transform: rotate(48deg); }
+  to { transform: rotate(192deg); }
 }
 @keyframes intro-gears-in {
   from { opacity: 0; transform: scale(1.18); }
