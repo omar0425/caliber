@@ -8,7 +8,16 @@ import SpendWarning from "./SpendWarning";
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  if (pathname === "/login") return <>{children}</>;
+  // The cold open plays on every app launch, the login screen included —
+  // it is the way into Caliber, not a reward for signing in.
+  if (pathname === "/login") {
+    return (
+      <>
+        <IntroGate withOnboarding={false} />
+        {children}
+      </>
+    );
+  }
 
   return (
     <>
