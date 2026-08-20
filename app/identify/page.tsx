@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import UploadZone from "@/components/UploadZone";
 import SpecSheet from "@/components/SpecSheet";
 import LensButton from "@/components/LensButton";
+import { NoticeBanner } from "@/components/states";
 import { WatchSpec, WatchSpecSchema } from "@/lib/types";
 import { safeStoredImageUrl } from "@/lib/uploadUrl";
 
@@ -320,11 +321,7 @@ export default function IdentifyPage() {
           >
             {loading ? "Analyzing…" : "Analyze photo"}
           </button>
-          {error && (
-            <p className="text-danger text-base bg-danger/10 border border-danger/30 rounded-lg p-3">
-              {error}
-            </p>
-          )}
+          {error && <NoticeBanner tone="danger">{error}</NoticeBanner>}
         </div>
 
         <div className="card p-4 sm:p-6 min-h-64 min-w-0">
@@ -344,23 +341,20 @@ export default function IdentifyPage() {
           {spec && !loading && (
             <div className="space-y-5">
               {recovered && (
-                <p className="text-good text-base bg-good/10 border border-good/30 rounded-lg p-3">
+                <NoticeBanner tone="good">
                   ✓ Your unsaved result was recovered — no new analysis was charged.
-                </p>
+                </NoticeBanner>
               )}
               {cached && (
-                <p className="text-good text-base bg-good/10 border border-good/30 rounded-lg p-3">
+                <NoticeBanner tone="good">
                   ✓ Loaded from a previous analysis of this exact photo — no new charge.
-                </p>
+                </NoticeBanner>
               )}
               <SpecSheet spec={spec} />
               <div className="pt-2 border-t border-line/60 space-y-3">
-                <p
-                  role="status"
-                  className="text-base text-warn bg-warn/10 border border-warn/30 rounded-lg p-3 leading-relaxed"
-                >
+                <NoticeBanner tone="warn" role="status">
                   Analysis ready, but it is not saved yet. Save this watch before leaving the page.
-                </p>
+                </NoticeBanner>
                 <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-center gap-2">
                   <label htmlFor="watch-status" className="text-[0.95rem] font-semibold text-muted">
                     Add to collection as

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "./Logo";
 
@@ -11,23 +11,13 @@ type Step = {
   body: React.ReactNode;
 };
 
-export default function WelcomeModal() {
+// Onboarding wizard. On a fresh install this is where the cold open lands:
+// the Intro film's dial resolves directly into step one (see IntroGate), so
+// step one's header keeps the dial/wordmark framing rather than re-introducing
+// it. All motion is CSS and is disabled globally under prefers-reduced-motion.
+export default function WelcomeModal({ onFinish }: { onFinish: () => void }) {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setMounted(true);
-      try {
-        if (!localStorage.getItem(KEY)) setOpen(true);
-      } catch {
-        /* ignore */
-      }
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, []);
 
   function finish() {
     try {
@@ -35,10 +25,8 @@ export default function WelcomeModal() {
     } catch {
       /* ignore */
     }
-    setOpen(false);
+    onFinish();
   }
-
-  if (!mounted || !open) return null;
 
   const steps: Step[] = [
     {
@@ -46,7 +34,11 @@ export default function WelcomeModal() {
       body: (
         <>
           <div className="flex justify-center my-4">
-            <Logo size={72} />
+            {/* The dial the intro resolved into — static from here on */}
+            <div className="relative flex items-center justify-center w-24 h-24 rounded-full border border-accent/50">
+              <div className="absolute inset-2 rounded-full border border-line/70" />
+              <Logo size={56} />
+            </div>
           </div>
           <p className="text-lg text-muted">
             Your personal watch expert. Caliber helps you understand, catalog, and protect your
@@ -107,8 +99,13 @@ export default function WelcomeModal() {
   const current = steps[step];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 min-[400px]:p-4 bg-black/70 backdrop-blur-sm">
-      <div className="card w-full max-w-lg max-h-[calc(100dvh-1rem)] overflow-y-auto p-5 min-[400px]:p-7 sm:p-10 text-center relative">
+    <div className="modal-enter fixed inset-0 z-[60] flex items-center justify-center p-2 min-[400px]:p-4 bg-black/70 backdrop-blur-sm">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Welcome to Caliber — step ${step + 1} of ${steps.length}`}
+        className="card shadow-overlay w-full max-w-lg max-h-[calc(100dvh-1rem)] overflow-y-auto p-5 min-[400px]:p-7 sm:p-10 text-center relative"
+      >
         <button
           onClick={finish}
           className="absolute top-3 right-3 min-h-11 px-2 text-muted hover:text-ink text-base"
@@ -117,21 +114,48 @@ export default function WelcomeModal() {
           Skip
         </button>
 
-        <p className="label text-[0.95rem]! mb-2 pr-12">
+        <p className="label mb-2 pr-12">
           Step {step + 1} of {steps.length}
         </p>
         <h2 className="font-serif text-[1.75rem] min-[400px]:text-3xl leading-tight mb-4">{current.title}</h2>
         <div>{current.body}</div>
 
-        {/* Progress dots */}
-        <div className="flex justify-center gap-2 my-6">
-          {steps.map((_, i) => (
-            <span
-              key={i}
-              className="w-2.5 h-2.5 rounded-full transition-colors"
-              style={{ background: i === step ? "var(--color-accent)" : "var(--color-line)" }}
+        {/* Progress: a small dial whose hand advances one hour per step */}
+        <div className="flex justify-center my-6" aria-hidden="true">
+          <svg viewBox="0 0 40 40" className="w-9 h-9">
+            <circle cx="20" cy="20" r="17" fill="none" stroke="var(--color-line)" strokeWidth="2" />
+            {Array.from({ length: 4 }).map((_, i) => {
+              const a = (i / 4) * Math.PI * 2 - Math.PI / 2;
+              return (
+                <line
+                  key={i}
+                  x1={20 + Math.cos(a) * 13.5}
+                  y1={20 + Math.sin(a) * 13.5}
+                  x2={20 + Math.cos(a) * 16}
+                  y2={20 + Math.sin(a) * 16}
+                  stroke={i <= step ? "var(--color-accent)" : "var(--color-line)"}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  style={{ transition: "stroke var(--duration-base) var(--ease-standard)" }}
+                />
+              );
+            })}
+            <line
+              x1="20"
+              y1="20"
+              x2="20"
+              y2="7.5"
+              stroke="var(--color-accent-soft)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              style={{
+                transform: `rotate(${step * 90}deg)`,
+                transformOrigin: "20px 20px",
+                transition: "transform var(--duration-slow) var(--ease-emphasized)",
+              }}
             />
-          ))}
+            <circle cx="20" cy="20" r="2" fill="var(--color-accent-soft)" />
+          </svg>
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
