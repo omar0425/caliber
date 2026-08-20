@@ -30,9 +30,9 @@ export default async function AppraisalPage() {
         <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-start min-[400px]:justify-between gap-3 border-b-2 border-[#c8a45c] pb-4">
           <div>
             <h1 className="font-serif text-3xl text-[#14141a]">Caliber</h1>
-            <p className="text-base text-[#6a6a72]">Collection Appraisal Summary</p>
+            <p className="text-[#6a6a72]">Collection Appraisal Summary</p>
           </div>
-          <div className="text-left min-[400px]:text-right text-base text-[#6a6a72]">
+          <div className="text-left min-[400px]:text-right text-[#6a6a72]">
             <p>Date: {today}</p>
             <p>{watches.length} timepieces</p>
           </div>

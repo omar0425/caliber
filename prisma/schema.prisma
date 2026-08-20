@@ -144,6 +144,25 @@ model ErrorLog {
   @@index([createdAt])
 }
 
+// One row per completed purchase-vetting, so results survive navigation.
+// imageUrl stores the same /api/uploads/<name> URL form as Watch.imageUrl,
+// Photo.url, and Document.url — and is registered in BOTH upload-reference
+// checks (scripts/cleanup-uploads.mjs, lib/uploadReferences.ts) so vet photos
+// are never reaped as orphans.
+model VetReport {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  imageUrl    String?
+  listingText String
+  verdict     String
+  confidence  Int
+  flagsJson   String
+  sourcesJson String?
+  resultJson  String
+
+  @@index([createdAt])
+}
+
 // One row per billed AI call — used to estimate spend and warn near budget.
 model UsageEvent {
   id           String   @id @default(cuid())

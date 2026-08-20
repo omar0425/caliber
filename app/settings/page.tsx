@@ -246,7 +246,7 @@ export default function SettingsPage() {
       {/* Key form */}
       <div className="card p-4 sm:p-6 space-y-4">
         <div>
-          <label className="label text-[0.95rem]!">OpenAI API key</label>
+          <label className="label">OpenAI API key</label>
           <input
             type="password"
             value={key}
@@ -282,7 +282,7 @@ export default function SettingsPage() {
             {saving ? "Saving…" : live ? "Update key" : "Save & go live"}
           </button>
           {status?.source === "app" && (
-            <button onClick={remove} className="btn btn-ghost text-danger! border-danger/40! w-full min-[400px]:w-auto">
+            <button onClick={remove} className="btn btn-danger w-full min-[400px]:w-auto">
               Remove key
             </button>
           )}
@@ -320,21 +320,21 @@ export default function SettingsPage() {
 
         <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
           <div className="card p-4">
-            <p className="label text-[0.95rem]!">This month</p>
+            <p className="label">This month</p>
             <p className="font-serif text-xl mt-1 text-accent-soft">
               ${usage ? usage.monthSpend.toFixed(2) : "—"}
             </p>
           </div>
           <div className="card p-4">
-            <p className="label text-[0.95rem]!">Analyses this month</p>
+            <p className="label">Analyses this month</p>
             <p className="font-serif text-xl mt-1">{usage ? usage.monthCalls : "—"}</p>
           </div>
           <div className="card p-4">
-            <p className="label text-[0.95rem]!">All-time</p>
+            <p className="label">All-time</p>
             <p className="font-serif text-xl mt-1">${usage ? usage.allTimeSpend.toFixed(2) : "—"}</p>
           </div>
           <div className="card p-4">
-            <p className="label text-[0.95rem]!">Avg. completed identification</p>
+            <p className="label">Avg. completed identification</p>
             <p className="font-serif text-xl mt-1 text-accent-soft">
               ${usage?.averageIdentifyCost != null ? usage.averageIdentifyCost.toFixed(3) : "—"}
             </p>
@@ -354,7 +354,7 @@ export default function SettingsPage() {
         </p>
 
         <div>
-          <label className="label text-[0.95rem]!">Monthly budget (USD, optional)</label>
+          <label className="label">Monthly budget (USD, optional)</label>
           <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-center gap-2 mt-1">
             <input
               value={budgetInput}
@@ -393,7 +393,7 @@ export default function SettingsPage() {
         </div>
 
         <div>
-          <label htmlFor="current-password" className="label text-[0.95rem]!">Current password</label>
+          <label htmlFor="current-password" className="label">Current password</label>
           <input
             id="current-password"
             name="currentPassword"
@@ -406,7 +406,7 @@ export default function SettingsPage() {
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="new-password" className="label text-[0.95rem]!">New password</label>
+            <label htmlFor="new-password" className="label">New password</label>
             <input
               id="new-password"
               name="newPassword"
@@ -419,7 +419,7 @@ export default function SettingsPage() {
             />
           </div>
           <div>
-            <label htmlFor="confirm-password" className="label text-[0.95rem]!">Confirm new password</label>
+            <label htmlFor="confirm-password" className="label">Confirm new password</label>
             <input
               id="confirm-password"
               name="confirmPassword"
@@ -476,7 +476,7 @@ export default function SettingsPage() {
         )}
 
         <div>
-          <label className="label text-[0.95rem]!">Owner name or email</label>
+          <label className="label">Owner name or email</label>
           <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 mt-1">
             <input
               value={ownerInput}
@@ -487,7 +487,7 @@ export default function SettingsPage() {
             <button
               onClick={assignOwner}
               disabled={assigning || !ownerInput.trim() || !ownership || ownership.unassigned === 0}
-              className="btn btn-gold w-full sm:w-auto whitespace-normal!"
+              className="btn btn-gold w-full sm:w-auto"
             >
               {assigning
                 ? "Assigning…"

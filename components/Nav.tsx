@@ -3,19 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "./Logo";
-import { HomeIcon, CameraIcon, GridIcon, ChartIcon, ShieldIcon, GearIcon } from "./NavIcons";
+import { HomeIcon, CameraIcon, GridIcon, ChartIcon, ShieldIcon, GearIcon, ClockIcon } from "./NavIcons";
 
 const LINKS = [
   { href: "/", label: "Dashboard", short: "Home", Icon: HomeIcon },
   { href: "/identify", label: "Identify", short: "Identify", Icon: CameraIcon },
   { href: "/collection", label: "Collection", short: "Watches", Icon: GridIcon },
+  // Desktop-only: the bottom tab bar stays at 5; mobile reaches Timeline via
+  // the Collection page header.
+  { href: "/timeline", label: "Timeline", short: "Time", Icon: ClockIcon, desktopOnly: true },
   { href: "/portfolio", label: "Portfolio", short: "Value", Icon: ChartIcon },
   { href: "/vet", label: "Vet a Buy", short: "Vet", Icon: ShieldIcon },
   { href: "/settings", label: "Settings", short: "Settings", Icon: GearIcon },
 ];
 
 // Bottom tab bar shows the 5 most-used destinations; Settings lives in the top bar.
-const TABS = LINKS.filter((l) => l.href !== "/settings");
+const TABS = LINKS.filter((l) => l.href !== "/settings" && !("desktopOnly" in l));
 
 export default function Nav() {
   const pathname = usePathname();
@@ -27,7 +30,10 @@ export default function Nav() {
       <header className="sticky top-0 z-30 border-b border-line/70 backdrop-blur bg-base/70">
         <div className="max-w-6xl mx-auto px-4 h-16 md:min-h-20 md:px-5 md:py-3 flex items-center justify-between gap-2 md:gap-4">
           <Link href="/" className="flex items-center gap-2.5">
-            <Logo size={30} />
+            {/* Concept C, the everyday app-open: one 400ms escapement tick.
+                AppShell persists across client-side navigation, so this fires
+                once per full page load — NOT per route change (intended, A6). */}
+            <Logo size={30} tick />
             <span className="font-serif text-xl md:text-2xl tracking-wide">Caliber</span>
           </Link>
 
@@ -48,7 +54,7 @@ export default function Nav() {
               ))}
             </nav>
             <form action="/api/auth/logout" method="post" className="border-l border-line pl-2">
-              <button type="submit" className="btn btn-ghost min-h-0! px-3! py-2.5! text-sm">
+              <button type="submit" className="btn btn-ghost btn-sm">
                 Sign out
               </button>
             </form>
@@ -86,9 +92,9 @@ export default function Nav() {
         </div>
       </header>
 
-      {/* Mobile bottom tab bar */}
+      {/* Mobile bottom tab bar (no-print: paper is for the appraisal, not chrome) */}
       <nav
-        className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-line/70 bg-base/95 backdrop-blur"
+        className="no-print lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-line/70 bg-base/95 backdrop-blur"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         <div className="grid grid-cols-5">

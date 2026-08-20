@@ -80,7 +80,7 @@ export default async function PortfolioPage() {
           <div className="card p-4 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <h2 className="font-serif text-xl">Value over time</h2>
-              <span className="text-[0.95rem] font-semibold text-muted">USD</span>
+              <span className="text-[0.95rem] font-semibold text-muted">Travel through your collection&apos;s value · USD</span>
             </div>
             <ValueChart data={p.timeline} />
           </div>

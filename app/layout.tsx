@@ -1,14 +1,24 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import { Archivo, IBM_Plex_Mono, Bodoni_Moda } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
-const playfair = Playfair_Display({
+// Lume type system: a high-contrast didone for display, a technical
+// grotesk for text, and a mono that carries every number and label.
+const grotesk = Archivo({
+  variable: "--font-grotesk",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+const monoTech = IBM_Plex_Mono({
+  variable: "--font-mono-tech",
+  subsets: ["latin"],
+  weight: ["400", "500"],
+});
+const bodoni = Bodoni_Moda({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -26,7 +36,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0b0e",
+  themeColor: "#050506",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -37,7 +47,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
+      className={`${grotesk.variable} ${monoTech.variable} ${bodoni.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <AppShell>{children}</AppShell>

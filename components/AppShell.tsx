@@ -2,17 +2,26 @@
 
 import { usePathname } from "next/navigation";
 import Nav from "./Nav";
-import WelcomeModal from "./WelcomeModal";
+import IntroGate from "./IntroGate";
 import SpendWarning from "./SpendWarning";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  if (pathname === "/login") return <>{children}</>;
+  // The cold open plays on every app launch, the login screen included —
+  // it is the way into Caliber, not a reward for signing in.
+  if (pathname === "/login") {
+    return (
+      <>
+        <IntroGate withOnboarding={false} />
+        {children}
+      </>
+    );
+  }
 
   return (
     <>
-      <WelcomeModal />
+      <IntroGate />
       <Nav />
       <SpendWarning />
       <main className="flex-1 w-full min-w-0 max-w-6xl mx-auto px-4 py-5 sm:px-5 sm:py-6 md:py-8">

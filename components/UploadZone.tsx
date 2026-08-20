@@ -48,7 +48,7 @@ export default function UploadZone({
         className={`card card-hover overflow-hidden flex items-center justify-center text-center min-h-52 sm:min-h-64 ${
           disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"
         } ${
-          drag ? "border-accent!" : ""
+          drag ? "border-accent" : ""
         }`}
       >
         {preview ? (

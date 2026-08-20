@@ -238,7 +238,7 @@ export default function WatchDetailClient({ watch }: { watch: WatchRecord }) {
             <button onClick={save} disabled={saving} className="btn btn-gold min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
               {saving ? "Saving…" : saved ? "Saved ✓" : "Save details"}
             </button>
-            <button onClick={remove} disabled={deleting} className="btn btn-ghost min-h-12 w-full max-w-full text-base text-danger! border-danger/40! min-[400px]:w-auto">
+            <button onClick={remove} disabled={deleting} className="btn btn-danger min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
               {deleting ? "Removing…" : "Remove"}
             </button>
           </div>

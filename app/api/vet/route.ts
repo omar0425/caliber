@@ -12,9 +12,52 @@ import {
 import { VetResultSchema } from "@/lib/types";
 import { normalizeHttpSources } from "@/lib/aiSources";
 import { recordFailure } from "@/lib/errorLog";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
+
+// GET /api/vet — the 20 most recent persisted vet reports (finding #2: vet
+// results used to vanish on navigation).
+export async function GET() {
+  try {
+    const reports = await prisma.vetReport.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        createdAt: true,
+        verdict: true,
+        confidence: true,
+        imageUrl: true,
+        listingText: true,
+        resultJson: true,
+      },
+    });
+    return NextResponse.json({
+      reports: reports.map((r) => {
+        let result: unknown = null;
+        try {
+          result = JSON.parse(r.resultJson);
+        } catch {
+          /* malformed row — return null result, UI guards */
+        }
+        return {
+          id: r.id,
+          createdAt: r.createdAt.toISOString(),
+          verdict: r.verdict,
+          confidence: r.confidence,
+          imageUrl: r.imageUrl,
+          excerpt: r.listingText.slice(0, 160),
+          result,
+        };
+      }),
+    });
+  } catch (err) {
+    await recordFailure("api/vet:list", err, { status: 500 });
+    return NextResponse.json({ error: "Could not load vet history." }, { status: 500 });
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -84,6 +127,26 @@ export async function POST(req: NextRequest) {
       await setCached(key, "vet", result);
     } catch (error) {
       await recordFailure("api/vet:cache", error, { level: "warn" });
+    }
+
+    // Persist the report so it survives navigation (finding #2). Cached
+    // responses skip this — the identical report is already stored from the
+    // original analysis. The pre-uploaded photo stays referenced by this row,
+    // which both upload-cleanup checks honor (amendment A2).
+    try {
+      await prisma.vetReport.create({
+        data: {
+          imageUrl: preUploadedName ? `/api/uploads/${preUploadedName}` : null,
+          listingText,
+          verdict: result.verdict,
+          confidence: result.confidence,
+          flagsJson: JSON.stringify(result.flags),
+          sourcesJson: JSON.stringify(result.sources ?? []),
+          resultJson: JSON.stringify(result),
+        },
+      });
+    } catch (error) {
+      await recordFailure("api/vet:report", error, { level: "warn" });
     }
 
     return NextResponse.json({ result, cached: false });
