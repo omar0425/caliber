@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+  /* ── Colour: gold on near-black (LOCKED palette) ─────────────────── */
   --color-base: #0b0b0e;
   --color-surface: #141419;
   --color-surface-2: #1c1c23;
@@ -13,124 +14,231 @@
   --color-warn: #e0b24a;
   --color-good: #6fbf8b;
 
+  /* ── Type ────────────────────────────────────────────────────────── */
   --font-serif: var(--font-display), Georgia, serif;
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
+
+  /* App type scale. 13px floor — nothing smaller ships (accessibility).
+     xs/sm are remapped from Tailwind defaults to the sizes this app already
+     used ad hoc (0.95rem secondary text). NOTE: there is deliberately no
+     --text-base override — this app's --color-base token claims the `text-base`
+     utility name in Tailwind v4 (it generates a COLOR, page background), so
+     `text-base` must never be used as a font size. Body reading size is the
+     18px body default (= text-lg). */
+  --text-xs: 0.8125rem; /* 13px — floor: badges, aux labels */
+  --text-sm: 0.9375rem; /* 15px — secondary text */
+  /* lg and up keep Tailwind defaults: lg 18px (body reading base),
+     xl 20, 2xl 24, 3xl 30, 4xl 36, 5xl 48 */
+
+  --leading-body: 1.6;
+  --tracking-label: 0.06em;
+
+  /* ── Elevation (tuned for gold-on-black) ─────────────────────────── */
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-overlay: 0 24px 80px rgba(0, 0, 0, 0.6);
+  --shadow-focus: 0 0 0 3px rgba(200, 164, 92, 0.18);
+
+  /* ── Radius ──────────────────────────────────────────────────────── */
+  --radius-card: 1rem; /* 16px — .card, .paper */
+  --radius-control: 10px; /* buttons, inputs */
+
+  /* ── Motion ──────────────────────────────────────────────────────── */
+  --duration-fast: 150ms; /* hover/focus feedback */
+  --duration-base: 250ms; /* entrances, state swaps */
+  --duration-slow: 400ms; /* branded moments (app-open tick) */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.3, 1.4, 0.5, 1); /* subtle overshoot */
 }
 
-html {
-  color-scheme: dark;
-  max-width: 100%;
-  overflow-x: hidden;
-  overflow-x: clip;
-}
+@layer base {
+  html {
+    color-scheme: dark;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-x: clip;
+  }
 
-body {
-  background:
-    radial-gradient(1200px 600px at 50% -10%, #17171f 0%, transparent 60%),
-    var(--color-base);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  font-size: 1.125rem; /* 18px reading base for comfortable phone use */
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-  overflow-x: clip;
-}
+  body {
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #17171f 0%, transparent 60%),
+      var(--color-base);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 1.125rem; /* 18px reading base for comfortable phone use */
+    line-height: var(--leading-body);
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-x: clip;
+  }
 
-/* Clear keyboard focus for accessibility */
-*:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-.font-serif { font-family: var(--font-serif); }
-
-.rule {
-  height: 1px;
-  background: linear-gradient(90deg, var(--color-accent), transparent);
-  opacity: 0.5;
-}
-
-.card {
-  background: linear-gradient(180deg, var(--color-surface) 0%, #101015 100%);
-  border: 1px solid var(--color-line);
-  border-radius: 16px;
-  min-width: 0;
-}
-
-.card-hover { transition: border-color 0.2s ease, transform 0.2s ease; }
-@media (hover: hover) and (pointer: fine) {
-  .card-hover:hover {
-    border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-line));
-    transform: translateY(-2px);
+  /* Clear keyboard focus for accessibility */
+  *:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 1.0625rem;
-  line-height: 1.25;
-  padding: 0.75rem 1.35rem;
-  min-width: 0;
-  min-height: 48px;
-  transition: all 0.18s ease;
-  cursor: pointer;
-  touch-action: manipulation;
-  white-space: normal;
-  max-width: 100%;
-  text-align: center;
-}
-.btn-gold {
-  background: linear-gradient(180deg, var(--color-accent-soft), var(--color-accent));
-  color: #1a1408;
-  border: 1px solid var(--color-accent);
-}
-.btn-ghost {
-  background: var(--color-surface-2);
-  color: var(--color-ink);
-  border: 1px solid var(--color-line);
-}
-@media (hover: hover) and (pointer: fine) {
-  .btn-gold:hover { filter: brightness(1.07); }
-  .btn-ghost:hover { border-color: var(--color-accent); }
-}
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.input {
-  width: 100%;
-  min-width: 0;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-line);
-  border-radius: 10px;
-  padding: 0.7rem 0.9rem;
-  color: var(--color-ink);
-  font-size: 1.0625rem;
-  line-height: 1.45;
-  min-height: 48px;
-}
-.input:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(200,164,92,0.18); }
-.label { font-size: 0.9rem; line-height: 1.4; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted); font-weight: 600; }
-
-@media (max-width: 399px) {
-  .btn {
-    padding: 0.7rem 1rem;
+@layer components {
+  .rule {
+    height: 1px;
+    background: linear-gradient(90deg, var(--color-accent), transparent);
+    opacity: 0.5;
   }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .btn,
+  .card {
+    background: linear-gradient(180deg, var(--color-surface) 0%, #101015 100%);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    min-width: 0;
+  }
+
   .card-hover {
-    transition: none;
+    transition:
+      border-color var(--duration-base) var(--ease-standard),
+      transform var(--duration-base) var(--ease-standard);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card-hover:hover {
+      border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-line));
+      transform: translateY(-2px);
+    }
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-control);
+    font-weight: 600;
+    font-size: 1.0625rem;
+    line-height: 1.25;
+    padding: 0.75rem 1.35rem;
+    min-width: 0;
+    min-height: 48px; /* comfortable tap target — LOCKED floor */
+    transition: all var(--duration-fast) var(--ease-standard);
+    cursor: pointer;
+    touch-action: manipulation;
+    white-space: normal;
+    max-width: 100%;
+    text-align: center;
+  }
+  .btn-gold {
+    background: linear-gradient(180deg, var(--color-accent-soft), var(--color-accent));
+    color: #1a1408;
+    border: 1px solid var(--color-accent);
+  }
+  .btn-ghost {
+    background: var(--color-surface-2);
+    color: var(--color-ink);
+    border: 1px solid var(--color-line);
+  }
+  /* Danger action: ghost weight, destructive signal */
+  .btn-danger {
+    background: var(--color-surface-2);
+    color: var(--color-danger);
+    border: 1px solid color-mix(in srgb, var(--color-danger) 40%, transparent);
+  }
+  /* Compact control for dense chrome (nav sign-out) */
+  .btn-sm {
+    min-height: 40px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.9375rem;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .btn-gold:hover {
+      filter: brightness(1.07);
+    }
+    .btn-ghost:hover {
+      border-color: var(--color-accent);
+    }
+    .btn-danger:hover {
+      border-color: var(--color-danger);
+    }
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .input {
+    width: 100%;
+    min-width: 0;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-control);
+    padding: 0.7rem 0.9rem;
+    color: var(--color-ink);
+    font-size: 1.0625rem;
+    line-height: 1.45;
+    min-height: 48px; /* LOCKED floor */
+  }
+  /* Compact field for inline controls (e.g. service interval) */
+  .input-sm {
+    min-height: 44px;
+    padding: 0.25rem 0.5rem;
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-focus);
+  }
+
+  .label {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-label);
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+
+  .paper {
+    background: #fff;
+    color: #14141a;
+    border-radius: var(--radius-card);
+  }
+
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(200, 164, 92, 0.12), transparent);
+    animation: shimmer 1.4s infinite;
+  }
+
+  @media (max-width: 399px) {
+    .btn {
+      padding: 0.7rem 1rem;
+    }
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Reduced motion means NO animation anywhere — intro included. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -146,13 +254,34 @@ body {
     --color-muted: #55555e;
     --color-accent-soft: #8a6d2f;
   }
-  header, footer, .no-print, button { display: none !important; }
-  html { color-scheme: light; }
-  body { background: #fff !important; color: #14141a; }
-  main { padding: 0 !important; max-width: none !important; }
-  .paper { box-shadow: none !important; border: none !important; }
-  .card { background: #fff; break-inside: avoid; }
-  .shimmer::after { display: none; }
+  header,
+  footer,
+  .no-print,
+  button {
+    display: none !important;
+  }
+  html {
+    color-scheme: light;
+  }
+  body {
+    background: #fff !important;
+    color: #14141a;
+  }
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  .paper {
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .card {
+    background: #fff;
+    break-inside: avoid;
+  }
+  .shimmer::after {
+    display: none;
+  }
   /* Form fields print as plain text, not boxes */
   .input {
     background: transparent;
@@ -162,18 +291,99 @@ body {
   }
 }
 
-.paper {
-  background: #fff;
-  color: #14141a;
-  border-radius: 14px;
+/* ── Cold open (Concept A) — one continuous 2.6s film, CSS only ────── */
+.intro-scene {
+  animation: intro-pullback 2.6s var(--ease-standard) both;
+}
+.intro-glow {
+  animation: intro-glow 2.6s ease-out both;
+}
+.intro-escapement {
+  opacity: 0;
+  animation:
+    intro-fade-in 0.4s ease-out 0.05s both,
+    intro-beat 0.7s steps(4, end) 0.1s both;
+}
+.intro-gears {
+  opacity: 0;
+  animation: intro-gears-in 0.8s var(--ease-standard) 0.45s both;
+}
+.intro-dial {
+  opacity: 0;
+  animation: intro-dial-in 0.7s var(--ease-standard) 1.15s both;
+}
+.intro-hand-hour,
+.intro-hand-minute {
+  opacity: 0;
+  animation:
+    intro-fade-in 0.2s ease-out 1.55s both,
+    intro-rewind 0.75s var(--ease-emphasized) 1.55s both;
+}
+.intro-wordmark {
+  opacity: 0;
+  animation: intro-wordmark 0.55s var(--ease-standard) 1.95s both;
+}
+.intro-tagline {
+  opacity: 0;
+  animation: intro-fade-in 0.5s ease-out 2.2s both;
 }
 
-@keyframes shimmer { 100% { transform: translateX(100%); } }
-.shimmer { position: relative; overflow: hidden; }
-.shimmer::after {
-  content: "";
-  position: absolute; inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(200,164,92,0.12), transparent);
-  animation: shimmer 1.4s infinite;
+@keyframes intro-pullback {
+  from { transform: scale(1.07); }
+  to { transform: scale(1); }
+}
+@keyframes intro-glow {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+@keyframes intro-fade-in {
+  to { opacity: 1; }
+}
+@keyframes intro-beat {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(48deg); }
+}
+@keyframes intro-gears-in {
+  from { opacity: 0; transform: scale(1.18); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes intro-dial-in {
+  from { opacity: 0; transform: scale(1.25); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes intro-rewind {
+  from { transform: rotate(-720deg); }
+  to { transform: rotate(0deg); }
+}
+@keyframes intro-wordmark {
+  from { opacity: 0; letter-spacing: 0.55em; }
+  to { opacity: 1; letter-spacing: 0.35em; }
+}
+
+/* ── Concept C: the everyday app-open tick (400ms, once per page load) ─ */
+.logo-tick-hands {
+  animation: logo-tick var(--duration-slow) var(--ease-emphasized) 0.05s 1 both;
+}
+@keyframes logo-tick {
+  from { transform: rotate(-36deg); }
+  to { transform: rotate(0deg); }
+}
+
+/* ── Winding skeletons & modal entrance ─────────────────────────────── */
+.winding-mark {
+  animation: winding-turn 2.4s steps(12, end) infinite;
+}
+.winding-mark-still {
+  animation: none;
+}
+@keyframes winding-turn {
+  to { transform: rotate(360deg); }
+}
+.modal-enter {
+  animation: modal-in var(--duration-base) var(--ease-standard) both;
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.985); }
+  to { opacity: 1; transform: scale(1); }
 }

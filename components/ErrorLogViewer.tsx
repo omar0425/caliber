@@ -101,7 +101,7 @@ export default function ErrorLogViewer() {
             <button
               onClick={clearLog}
               disabled={busy}
-              className="btn btn-ghost min-h-12 w-full text-base text-danger! border-danger/40! min-[400px]:w-auto"
+              className="btn btn-danger min-h-12 w-full text-base min-[400px]:w-auto"
             >
               {busy ? "Clearing…" : "Clear log"}
             </button>
@@ -119,7 +119,7 @@ export default function ErrorLogViewer() {
                   >
                     <span className="flex flex-wrap items-center gap-2">
                       <span
-                        className="rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+                        className="rounded-full border px-2 py-0.5 text-xs font-semibold uppercase tracking-wide"
                         style={{
                           color: entry.level === "warn" ? "var(--color-warn)" : "var(--color-danger)",
                           borderColor:

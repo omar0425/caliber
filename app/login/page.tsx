@@ -36,7 +36,7 @@ export default async function LoginPage({
           </div>
 
           <div className="space-y-7">
-            <p className="label text-accent!">Private watch intelligence</p>
+            <p className="label text-accent">Private watch intelligence</p>
             <h1 className="font-serif text-5xl 2xl:text-6xl leading-[1.08]">
               Your collection,
               <br />
@@ -67,7 +67,7 @@ export default async function LoginPage({
           </div>
 
           <div className="card p-5 min-[400px]:p-7 sm:p-9 shadow-2xl shadow-black/30">
-            <p className="label text-[0.95rem]! text-accent! mb-2">Private access</p>
+            <p className="label text-accent mb-2">Private access</p>
             <h2 className="font-serif text-[2rem] leading-tight">Welcome back</h2>
             <p className="text-base text-muted mt-2 mb-6 sm:mb-7 leading-relaxed">
               Sign in with the same Caliber username and password you already use.
@@ -85,7 +85,7 @@ export default async function LoginPage({
             <form action="/api/auth/login" method="post" className="space-y-5">
               <input type="hidden" name="next" value={returnTo} />
               <div>
-                <label htmlFor="user" className="label text-[0.95rem]!">Username</label>
+                <label htmlFor="user" className="label">Username</label>
                 <input
                   id="user"
                   name="user"
@@ -99,7 +99,7 @@ export default async function LoginPage({
               </div>
               <div>
                 <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-center min-[400px]:justify-between gap-1 min-[400px]:gap-3">
-                  <label htmlFor="password" className="label text-[0.95rem]!">Password</label>
+                  <label htmlFor="password" className="label">Password</label>
                   <span className="text-[0.95rem] text-muted">Stored by your password manager</span>
                 </div>
                 <input

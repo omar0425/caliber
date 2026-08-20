@@ -113,7 +113,7 @@ export default function ServiceLog({
         </div>
         <label className="flex min-h-11 w-full items-center justify-between gap-2 text-sm text-muted min-[430px]:w-auto min-[430px]:justify-start">
           Every
-          <select value={interval} onChange={(e) => saveInterval(e.target.value)} className="input min-h-11 w-20 px-2! py-1! text-base">
+          <select value={interval} onChange={(e) => saveInterval(e.target.value)} className="input input-sm min-h-11 w-20 text-base">
             {[3, 4, 5, 6, 7, 10].map((y) => (
               <option key={y} value={y}>{y}y</option>
             ))}
