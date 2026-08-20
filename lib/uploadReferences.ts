@@ -3,12 +3,13 @@ import { deleteStoredFile } from "./upload";
 import { recordFailure } from "./errorLog";
 
 export async function deleteStoredFileIfUnreferenced(publicUrl: string): Promise<void> {
-  const [cover, photo, document] = await Promise.all([
+  const [cover, photo, document, vetReport] = await Promise.all([
     prisma.watch.findFirst({ where: { imageUrl: publicUrl }, select: { id: true } }),
     prisma.photo.findFirst({ where: { url: publicUrl }, select: { id: true } }),
     prisma.document.findFirst({ where: { url: publicUrl }, select: { id: true } }),
+    prisma.vetReport.findFirst({ where: { imageUrl: publicUrl }, select: { id: true } }),
   ]);
-  if (!cover && !photo && !document) await deleteStoredFile(publicUrl);
+  if (!cover && !photo && !document && !vetReport) await deleteStoredFile(publicUrl);
 }
 
 export async function deleteStoredFilesBestEffort(publicUrls: string[]): Promise<void> {

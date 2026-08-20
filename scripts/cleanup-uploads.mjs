@@ -28,13 +28,19 @@ async function main() {
     throw error;
   }
 
-  const [covers, photos, documents] = await Promise.all([
+  const [covers, photos, documents, vetReports] = await Promise.all([
     prisma.watch.findMany({ where: { imageUrl: { not: null } }, select: { imageUrl: true } }),
     prisma.photo.findMany({ select: { url: true } }),
     prisma.document.findMany({ select: { url: true } }),
+    prisma.vetReport.findMany({ where: { imageUrl: { not: null } }, select: { imageUrl: true } }),
   ]);
   const referenced = new Set(
-    [...covers.map((item) => item.imageUrl), ...photos.map((item) => item.url), ...documents.map((item) => item.url)]
+    [
+      ...covers.map((item) => item.imageUrl),
+      ...photos.map((item) => item.url),
+      ...documents.map((item) => item.url),
+      ...vetReports.map((item) => item.imageUrl),
+    ]
       .map(fileNameFromUrl)
       .filter(Boolean)
   );
