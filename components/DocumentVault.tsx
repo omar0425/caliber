@@ -62,12 +62,12 @@ export default function DocumentVault({ watchId, documents }: { watchId: string;
       <div className="flex min-w-0 flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <h3 className="break-words font-serif text-2xl leading-tight">Documents &amp; provenance</h3>
         <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <select value={kind} onChange={(e) => setKind(e.target.value)} className="input min-h-12 min-w-0 max-w-none text-base sm:max-w-48">
+          <select value={kind} onChange={(e) => setKind(e.target.value)} className="input min-h-12 min-w-0 max-w-none sm:max-w-48">
             {KINDS.map((k) => (
               <option key={k.key} value={k.key}>{k.label}</option>
             ))}
           </select>
-          <button onClick={() => inputRef.current?.click()} disabled={busy} className="btn btn-ghost min-h-12 w-full max-w-full text-base sm:w-auto">
+          <button onClick={() => inputRef.current?.click()} disabled={busy} className="btn btn-ghost min-h-12 w-full max-w-full sm:w-auto">
             {busy ? "Uploading…" : "+ Add"}
           </button>
           <input
@@ -89,7 +89,7 @@ export default function DocumentVault({ watchId, documents }: { watchId: string;
           {documents.map((d) => (
             <li key={d.id} className="flex min-w-0 flex-col items-start justify-between gap-2 py-3 min-[400px]:flex-row min-[400px]:items-center min-[400px]:gap-3">
               <div className="w-full min-w-0">
-                <a href={d.url} target="_blank" rel="noreferrer" className="block break-words text-base leading-snug hover:text-accent [overflow-wrap:anywhere]">
+                <a href={d.url} target="_blank" rel="noreferrer" className="block break-words leading-snug hover:text-accent [overflow-wrap:anywhere]">
                   {d.name}
                 </a>
                 <span className="mt-1 block text-sm text-muted">{KIND_LABEL[d.kind] ?? d.kind}</span>

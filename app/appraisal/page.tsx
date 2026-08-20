@@ -21,7 +21,7 @@ export default async function AppraisalPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-center min-[400px]:justify-between gap-3 no-print">
-        <p className="text-muted text-base">Preview — this page is formatted for printing.</p>
+        <p className="text-muted">Preview — this page is formatted for printing.</p>
         <PrintButton />
       </div>
 
@@ -45,7 +45,7 @@ export default async function AppraisalPage() {
               <h2 className="text-lg font-semibold text-[#14141a] leading-snug break-words">
                 {w.brand} {w.model}
               </h2>
-              <dl className="mt-3 space-y-2 text-base">
+              <dl className="mt-3 space-y-2">
                 <div className="flex items-start justify-between gap-4">
                   <dt className="text-[#6a6a72]">Reference</dt>
                   <dd className="text-right text-[#33333a] break-words">{w.referenceNumber ?? "—"}</dd>
@@ -64,16 +64,16 @@ export default async function AppraisalPage() {
             </article>
           ))}
           {watches.length === 0 && (
-            <p className="py-6 text-center text-base text-[#6a6a72]">No owned watches to appraise.</p>
+            <p className="py-6 text-center text-[#6a6a72]">No owned watches to appraise.</p>
           )}
           <div className="py-4 flex items-start justify-between gap-4 border-t-2 border-[#c8a45c]">
-            <p className="text-base font-semibold text-[#14141a]">Total estimated value</p>
+            <p className="font-semibold text-[#14141a]">Total estimated value</p>
             <p className="font-serif text-xl text-right text-[#14141a]">{money(total)}</p>
           </div>
         </div>
 
         <div className="hidden sm:block print:block overflow-x-auto">
-        <table className="w-full min-w-[26rem] text-base mt-6 border-collapse">
+        <table className="w-full min-w-[26rem] mt-6 border-collapse">
           <thead>
             <tr className="text-left border-b border-[#ddd] text-[#6a6a72]">
               <th className="py-2 pr-2 font-semibold">Brand &amp; Model</th>

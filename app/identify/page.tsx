@@ -282,7 +282,7 @@ export default function IdentifyPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-serif text-3xl">Identify a watch</h1>
-        <p className="text-base text-muted mt-1 leading-relaxed">
+        <p className="text-muted mt-1 leading-relaxed">
           Upload a clear photo. Caliber recognizes the piece, confirms specs against real sources,
           and estimates its market value.
         </p>
@@ -294,13 +294,13 @@ export default function IdentifyPage() {
           <UploadZone onFile={pickFile} preview={preview} disabled={loading || saving} />
           <LensButton name={uploadName} imagePath={uploadedUrl} uploading={uploading} />
           <div className="card p-4 space-y-2">
-            <label htmlFor="identification-hint" className="text-base font-semibold text-ink">
+            <label htmlFor="identification-hint" className="font-semibold text-ink">
               Help Caliber identify it
               <span className="block text-[0.95rem] font-medium text-accent mt-0.5">
                 Optional, but recommended
               </span>
             </label>
-            <p className="text-base text-muted leading-relaxed">
+            <p className="text-muted leading-relaxed">
               Add anything you know, such as the brand, model, reference number, or words on the
               caseback.
             </p>
@@ -330,11 +330,11 @@ export default function IdentifyPage() {
               <div className="shimmer h-6 w-1/2 rounded bg-surface-2" />
               <div className="shimmer h-4 w-full rounded bg-surface-2" />
               <div className="shimmer h-4 w-2/3 rounded bg-surface-2" />
-              <p className="text-muted text-base pt-2">Researching reference & market value…</p>
+              <p className="text-muted pt-2">Researching reference & market value…</p>
             </div>
           )}
           {!loading && !spec && (
-            <div className="h-full flex items-center justify-center text-center text-muted text-base">
+            <div className="h-full flex items-center justify-center text-center text-muted">
               Your spec sheet will appear here.
             </div>
           )}

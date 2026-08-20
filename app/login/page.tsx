@@ -69,14 +69,14 @@ export default async function LoginPage({
           <div className="card p-5 min-[400px]:p-7 sm:p-9 shadow-2xl shadow-black/30">
             <p className="label text-accent mb-2">Private access</p>
             <h2 className="font-serif text-[2rem] leading-tight">Welcome back</h2>
-            <p className="text-base text-muted mt-2 mb-6 sm:mb-7 leading-relaxed">
+            <p className="text-muted mt-2 mb-6 sm:mb-7 leading-relaxed">
               Sign in with the same Caliber username and password you already use.
             </p>
 
             {error && (
               <p
                 role="alert"
-                className="text-danger text-base bg-danger/10 border border-danger/30 rounded-lg p-3 mb-5"
+                className="text-danger bg-danger/10 border border-danger/30 rounded-lg p-3 mb-5"
               >
                 {error}
               </p>

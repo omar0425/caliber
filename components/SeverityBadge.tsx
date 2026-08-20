@@ -106,13 +106,13 @@ export function VerdictBadge({
     <span className="inline-flex min-w-0 items-center gap-2">
       <v.Icon color={v.color} />
       <span
-        className={compact ? "text-base font-semibold leading-snug" : "font-serif text-2xl leading-tight"}
+        className={compact ? "font-semibold leading-snug" : "font-serif text-2xl leading-tight"}
         style={{ color: v.color }}
       >
         {v.label}
       </span>
       {typeof confidence === "number" && (
-        <span className="text-base text-muted">{confidence}% confidence</span>
+        <span className="text-muted">{confidence}% confidence</span>
       )}
     </span>
   );

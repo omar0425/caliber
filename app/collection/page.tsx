@@ -53,7 +53,7 @@ export default function CollectionPage() {
       <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-end min-[400px]:justify-between gap-4">
         <div className="min-w-0">
           <h1 className="font-serif text-3xl">{heading}</h1>
-          <p className="text-base text-muted mt-1">{watches.length} watch{watches.length === 1 ? "" : "es"}</p>
+          <p className="text-muted mt-1">{watches.length} watch{watches.length === 1 ? "" : "es"}</p>
         </div>
         <div className="flex flex-col min-[400px]:flex-row gap-2 w-full min-[400px]:w-auto">
           <Link href="/timeline" className="btn btn-ghost w-full min-[400px]:w-auto">Timeline view</Link>
@@ -68,7 +68,7 @@ export default function CollectionPage() {
             <button
               key={f.key}
               onClick={() => setStatus(f.key)}
-              className={`min-h-11 px-3 py-2.5 rounded-lg text-base font-medium transition-colors border ${
+              className={`min-h-11 px-3 py-2.5 rounded-lg font-medium transition-colors border ${
                 status === f.key
                   ? "border-accent text-accent bg-surface-2"
                   : "border-line text-muted hover:text-ink"
@@ -106,7 +106,7 @@ export default function CollectionPage() {
         </div>
       ) : empty ? (
         <div className="card p-6 sm:p-12 text-center">
-          <p className="text-base text-muted">No watches found.</p>
+          <p className="text-muted">No watches found.</p>
           <Link href="/identify" className="btn btn-gold mt-4 inline-flex w-full min-[400px]:w-auto">Identify a watch</Link>
         </div>
       ) : (

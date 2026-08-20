@@ -82,7 +82,7 @@ export default function WatchChat({ watchId, watchName }: { watchId: string; wat
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
-              className={`max-w-full min-w-0 whitespace-pre-wrap break-words rounded-2xl px-4 py-3 text-base leading-relaxed [overflow-wrap:anywhere] min-[400px]:max-w-[92%] sm:max-w-[85%] ${
+              className={`max-w-full min-w-0 whitespace-pre-wrap break-words rounded-2xl px-4 py-3 leading-relaxed [overflow-wrap:anywhere] min-[400px]:max-w-[92%] sm:max-w-[85%] ${
                 m.role === "user"
                   ? "bg-accent text-black rounded-br-sm"
                   : "bg-surface-2 border border-line/60 rounded-bl-sm"
@@ -110,7 +110,7 @@ export default function WatchChat({ watchId, watchName }: { watchId: string; wat
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="rounded-2xl rounded-bl-sm border border-line/60 bg-surface-2 px-4 py-3 text-base text-muted">
+            <div className="rounded-2xl rounded-bl-sm border border-line/60 bg-surface-2 px-4 py-3 text-muted">
               Thinking…
             </div>
           </div>
@@ -131,10 +131,10 @@ export default function WatchChat({ watchId, watchName }: { watchId: string; wat
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask anything about this watch…"
-          className="input min-h-12 min-w-0 text-base"
+          className="input min-h-12 min-w-0"
           disabled={loading}
         />
-        <button type="submit" disabled={loading || !input.trim()} className="btn btn-gold min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
+        <button type="submit" disabled={loading || !input.trim()} className="btn btn-gold min-h-12 w-full max-w-full min-[400px]:w-auto">
           Send
         </button>
       </form>

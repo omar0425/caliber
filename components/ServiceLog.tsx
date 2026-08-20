@@ -86,7 +86,7 @@ export default function ServiceLog({
     <div className="card min-w-0 space-y-4 p-4 sm:p-6">
       <div className="flex flex-col items-start justify-between gap-3 min-[400px]:flex-row min-[400px]:items-center">
         <h3 className="font-serif text-2xl leading-tight">Service &amp; maintenance</h3>
-        <button onClick={() => setOpen((o) => !o)} className="btn btn-ghost min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
+        <button onClick={() => setOpen((o) => !o)} className="btn btn-ghost min-h-12 w-full max-w-full min-[400px]:w-auto">
           {open ? "Cancel" : "+ Log service"}
         </button>
       </div>
@@ -113,7 +113,7 @@ export default function ServiceLog({
         </div>
         <label className="flex min-h-11 w-full items-center justify-between gap-2 text-sm text-muted min-[430px]:w-auto min-[430px]:justify-start">
           Every
-          <select value={interval} onChange={(e) => saveInterval(e.target.value)} className="input input-sm min-h-11 w-20 text-base">
+          <select value={interval} onChange={(e) => saveInterval(e.target.value)} className="input input-sm min-h-11 w-20">
             {[3, 4, 5, 6, 7, 10].map((y) => (
               <option key={y} value={y}>{y}y</option>
             ))}
@@ -127,28 +127,28 @@ export default function ServiceLog({
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
               <label className="label text-sm">Date</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input mt-1 min-h-12 text-base" />
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input mt-1 min-h-12" />
             </div>
             <div>
               <label className="label text-sm">Type</label>
-              <select value={type} onChange={(e) => setType(e.target.value)} className="input mt-1 min-h-12 text-base">
+              <select value={type} onChange={(e) => setType(e.target.value)} className="input mt-1 min-h-12">
                 {TYPES.map((t) => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div>
               <label className="label text-sm">Watchmaker / service center</label>
-              <input value={provider} onChange={(e) => setProvider(e.target.value)} className="input mt-1 min-h-12 text-base" placeholder="e.g. Rolex Service Center" />
+              <input value={provider} onChange={(e) => setProvider(e.target.value)} className="input mt-1 min-h-12" placeholder="e.g. Rolex Service Center" />
             </div>
             <div>
               <label className="label text-sm">Cost (USD)</label>
-              <input value={cost} onChange={(e) => setCost(e.target.value)} inputMode="decimal" className="input mt-1 min-h-12 text-base" placeholder="e.g. 800" />
+              <input value={cost} onChange={(e) => setCost(e.target.value)} inputMode="decimal" className="input mt-1 min-h-12" placeholder="e.g. 800" />
             </div>
           </div>
           <div>
             <label className="label text-sm">Notes</label>
-            <input value={notes} onChange={(e) => setNotes(e.target.value)} className="input mt-1 min-h-12 text-base" placeholder="Work performed, parts replaced…" />
+            <input value={notes} onChange={(e) => setNotes(e.target.value)} className="input mt-1 min-h-12" placeholder="Work performed, parts replaced…" />
           </div>
-          <button onClick={add} disabled={busy || !date} className="btn btn-gold min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
+          <button onClick={add} disabled={busy || !date} className="btn btn-gold min-h-12 w-full max-w-full min-[400px]:w-auto">
             {busy ? "Saving…" : "Save service record"}
           </button>
         </div>
@@ -162,7 +162,7 @@ export default function ServiceLog({
           {records.map((r) => (
             <li key={r.id} className="flex min-w-0 flex-col items-start justify-between gap-2 py-3 min-[400px]:flex-row min-[400px]:gap-3">
               <div className="min-w-0">
-                <p className="break-words text-base leading-relaxed [overflow-wrap:anywhere]">
+                <p className="break-words leading-relaxed [overflow-wrap:anywhere]">
                   <span className="font-medium">{r.type}</span>
                   <span className="text-muted"> · {new Date(r.date).toLocaleDateString()}</span>
                 </p>

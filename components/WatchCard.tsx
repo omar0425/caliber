@@ -34,7 +34,7 @@ export default function WatchCard({ watch }: { watch: WatchCardData }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={watch.imageUrl} alt={`${watch.brand} ${watch.model}`} className="w-full h-full object-cover" />
         ) : (
-          <span className="text-muted text-base">No photo</span>
+          <span className="text-muted">No photo</span>
         )}
       </div>
       <div className="p-4 min-[400px]:p-5 flex-1 flex flex-col min-w-0">
@@ -45,10 +45,10 @@ export default function WatchCard({ watch }: { watch: WatchCardData }) {
           </span>
         </div>
         <h3 className="font-serif text-xl leading-snug mt-1 break-words">{watch.model}</h3>
-        <p className="text-muted text-base mt-1 break-words">
+        <p className="text-muted mt-1 break-words">
           {watch.referenceNumber || watch.nickname || " "}
         </p>
-        {value && <p className="text-base font-medium text-accent-soft mt-auto pt-3 break-words">{value}</p>}
+        {value && <p className="font-medium text-accent-soft mt-auto pt-3 break-words">{value}</p>}
       </div>
       </Link>
     </div>

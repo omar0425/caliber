@@ -66,7 +66,7 @@ export default async function TimelinePage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-serif text-3xl">Timeline</h1>
-        <p className="text-base text-muted mt-1 leading-relaxed">
+        <p className="text-muted mt-1 leading-relaxed">
           Every watch is a time machine. Travel your shelf — from the newest reference back to the
           oldest — against the milestones that shaped watchmaking.
         </p>
@@ -115,7 +115,7 @@ export default async function TimelinePage() {
                       </span>
                       <span className="min-w-0">
                         <span className="block text-sm font-semibold text-accent">{year}</span>
-                        <span className="block text-base font-medium text-ink break-words leading-snug">
+                        <span className="block font-medium text-ink break-words leading-snug">
                           {watch.brand} {watch.model}
                         </span>
                         <span className="block text-sm text-muted capitalize">{watch.status}</span>
@@ -151,7 +151,7 @@ export default async function TimelinePage() {
                       )}
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-base font-medium text-ink break-words leading-snug">
+                      <span className="block font-medium text-ink break-words leading-snug">
                         {watch.brand} {watch.model}
                       </span>
                       <span className="block text-sm text-muted capitalize">{watch.status}</span>

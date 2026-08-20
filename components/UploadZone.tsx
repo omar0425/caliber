@@ -60,7 +60,7 @@ export default function UploadZone({
               +
             </div>
             <p className="text-ink text-lg font-semibold">{hint}</p>
-            <p className="text-muted text-base mt-1">Clear, well-lit shots work best</p>
+            <p className="text-muted mt-1">Clear, well-lit shots work best</p>
           </div>
         )}
       </div>

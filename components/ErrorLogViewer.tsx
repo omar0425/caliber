@@ -95,13 +95,13 @@ export default function ErrorLogViewer() {
       ) : (
         <>
           <div className="flex flex-col gap-2 min-[400px]:flex-row">
-            <button onClick={copyAll} className="btn btn-ghost min-h-12 w-full text-base min-[400px]:w-auto">
+            <button onClick={copyAll} className="btn btn-ghost min-h-12 w-full min-[400px]:w-auto">
               Copy all details
             </button>
             <button
               onClick={clearLog}
               disabled={busy}
-              className="btn btn-danger min-h-12 w-full text-base min-[400px]:w-auto"
+              className="btn btn-danger min-h-12 w-full min-[400px]:w-auto"
             >
               {busy ? "Clearing…" : "Clear log"}
             </button>

@@ -146,7 +146,7 @@ export default function IdentificationCorrection({
               : "Re-analyze the saved cover photo or replace the identity manually."}
           </p>
         </div>
-        <button onClick={() => setOpen((value) => !value)} className="btn btn-ghost min-h-12 w-full max-w-full text-base min-[400px]:w-auto">
+        <button onClick={() => setOpen((value) => !value)} className="btn btn-ghost min-h-12 w-full max-w-full min-[400px]:w-auto">
           {open ? "Close" : "Correct identification"}
         </button>
       </div>
@@ -173,12 +173,12 @@ export default function IdentificationCorrection({
               onChange={(event) => setHint(event.target.value)}
               maxLength={500}
               placeholder="Optional clue, e.g. “The dial clearly says BREITLING”"
-              className="input min-h-12 text-base"
+              className="input min-h-12"
             />
             <button
               onClick={reanalyze}
               disabled={working !== null || !hasCoverPhoto}
-              className="btn btn-gold min-h-12 w-full max-w-full text-base sm:w-auto"
+              className="btn btn-gold min-h-12 w-full max-w-full sm:w-auto"
             >
               {working === "ai" ? "Re-analyzing…" : "Re-analyze cover photo"}
             </button>
@@ -198,29 +198,29 @@ export default function IdentificationCorrection({
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
                 <label className="label text-sm">Brand</label>
-                <input value={brand} onChange={(event) => setBrand(event.target.value)} className="input mt-1 min-h-12 text-base" />
+                <input value={brand} onChange={(event) => setBrand(event.target.value)} className="input mt-1 min-h-12" />
               </div>
               <div>
                 <label className="label text-sm">Model</label>
-                <input value={model} onChange={(event) => setModel(event.target.value)} className="input mt-1 min-h-12 text-base" />
+                <input value={model} onChange={(event) => setModel(event.target.value)} className="input mt-1 min-h-12" />
               </div>
               <div>
                 <label className="label text-sm">Reference</label>
                 <input
                   value={referenceNumber}
                   onChange={(event) => setReferenceNumber(event.target.value)}
-                  className="input mt-1 min-h-12 text-base"
+                  className="input mt-1 min-h-12"
                 />
               </div>
               <div>
                 <label className="label text-sm">Nickname</label>
-                <input value={nickname} onChange={(event) => setNickname(event.target.value)} className="input mt-1 min-h-12 text-base" />
+                <input value={nickname} onChange={(event) => setNickname(event.target.value)} className="input mt-1 min-h-12" />
               </div>
             </div>
             <button
               onClick={saveManualCorrection}
               disabled={working !== null || !brand.trim() || !model.trim()}
-              className="btn btn-ghost min-h-12 w-full max-w-full text-base sm:w-auto"
+              className="btn btn-ghost min-h-12 w-full max-w-full sm:w-auto"
             >
               {working === "manual" ? "Saving…" : "Save manual correction"}
             </button>

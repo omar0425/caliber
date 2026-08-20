@@ -42,7 +42,7 @@ export default async function Dashboard() {
           <h1 className="font-serif text-[2rem] min-[400px]:text-4xl sm:text-5xl leading-[1.12]">
             Know every watch<br />before you own it.
           </h1>
-          <p className="text-base text-muted mt-4 leading-relaxed">
+          <p className="text-muted mt-4 leading-relaxed">
             Snap a photo to identify any watch, pull its full specs and market value, and vet
             listings for fakes before you buy. Your entire collection, catalogued and understood.
           </p>
@@ -80,7 +80,7 @@ export default async function Dashboard() {
           </div>
           <ul className="space-y-2">
             {serviceDue.slice(0, 5).map(({ watch, due, status }) => (
-              <li key={watch.id} className="flex flex-col min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between gap-1 text-base py-1">
+              <li key={watch.id} className="flex flex-col min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between gap-1 py-1">
                 <Link href={`/watch/${watch.id}`} className="hover:text-accent min-w-0 break-words">
                   <span className="text-accent-soft">{watch.brand}</span> {watch.model}
                 </Link>
@@ -97,14 +97,14 @@ export default async function Dashboard() {
       <section>
         <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
           <h2 className="font-serif text-2xl">Recently added</h2>
-          <Link href="/collection" className="text-base text-accent hover:underline">
+          <Link href="/collection" className="text-accent hover:underline">
             View collection →
           </Link>
         </div>
         <div className="rule mb-6" />
         {watches.length === 0 ? (
           <div className="card p-6 sm:p-10 text-center">
-            <p className="text-base text-muted">Your collection is empty.</p>
+            <p className="text-muted">Your collection is empty.</p>
             <Link href="/identify" className="btn btn-gold mt-4 inline-flex w-full min-[400px]:w-auto">
               Add your first watch
             </Link>
