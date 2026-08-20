@@ -330,9 +330,11 @@
    times as long.
    Ending (the coda): once the wordmark and tagline have resolved
    (~5.45s), the dial pumps twice like a heartbeat — scale and lume
-   bloom together, text untouched — then the whole frame holds
-   perfectly still so the ending can actually be read, and only then
-   does the overlay fade into the app. Film 5.6s + 1.2s heartbeat +
+   bloom together, text untouched — while CALIBER blooms with a lume
+   text-glow. Then the whole frame holds perfectly still, resting a
+   notch brighter than before, so the ending can actually be read and
+   feels like a lit tableau; only then does the overlay fade into the
+   app (600ms cross-fade in Intro.tsx). Film 5.6s + 1.2s heartbeat +
    1.35s hold = 8.2s. FILM_MS in components/Intro.tsx must match 8.2s.
    The heartbeat/glow-beat coda animations deliberately use fill-mode
    `forwards`, not `both` — a backwards fill would pin the scene to the
@@ -370,7 +372,9 @@
 }
 .intro-wordmark {
   opacity: 0;
-  animation: intro-wordmark 0.55s var(--ease-standard) 4.55s both;
+  animation:
+    intro-wordmark 0.55s var(--ease-standard) 4.55s both,
+    intro-wordmark-shine 1.6s var(--ease-standard) 5.65s forwards;
 }
 .intro-tagline {
   opacity: 0;
@@ -414,20 +418,31 @@
 /* Two pumps — lub-dub — then dead still for the rest of the coda. */
 @keyframes intro-heartbeat {
   0% { transform: scale(1); }
-  11% { transform: scale(1.05); }
+  11% { transform: scale(1.06); }
   24% { transform: scale(1); }
-  38% { transform: scale(1.05); }
+  38% { transform: scale(1.06); }
   58% { transform: scale(1); }
   100% { transform: scale(1); }
 }
-/* The lume bloom brightens with each pump of the dial. */
+/* The lume bloom surges with each pump, then rests brighter than it
+   started — the held final frame stays lit. */
 @keyframes intro-glow-beat {
   0% { opacity: 0.7; }
   11% { opacity: 1; }
-  24% { opacity: 0.7; }
+  24% { opacity: 0.72; }
   38% { opacity: 1; }
-  58% { opacity: 0.7; }
-  100% { opacity: 0.7; }
+  58% { opacity: 0.85; }
+  100% { opacity: 0.85; }
+}
+/* CALIBER charges with lume during the heartbeat and stays glowing —
+   pure text-shadow, the letters never move. */
+@keyframes intro-wordmark-shine {
+  from { text-shadow: 0 0 0 rgba(184, 242, 78, 0); }
+  to {
+    text-shadow:
+      0 0 18px rgba(184, 242, 78, 0.5),
+      0 0 46px rgba(184, 242, 78, 0.28);
+  }
 }
 
 /* ── Concept C: the everyday app-open tick (400ms, once per page load) ─ */

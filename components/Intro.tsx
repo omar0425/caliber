@@ -29,8 +29,9 @@ export default function Intro({ onDone }: { onDone: () => void }) {
     if (doneRef.current) return;
     doneRef.current = true;
     setLeaving(true);
-    // Brief cross-fade out, then hand off to the welcome modal.
-    window.setTimeout(onDone, 300);
+    // Unhurried cross-fade out (matches duration-[600ms] on the overlay),
+    // then hand off to the welcome modal.
+    window.setTimeout(onDone, 600);
   };
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
     <div
       role="dialog"
       aria-label="Caliber — every watch is a time machine"
-      className={`fixed inset-0 z-[70] flex items-center justify-center bg-base transition-opacity duration-300 ${
+      className={`fixed inset-0 z-[70] flex items-center justify-center bg-base transition-opacity duration-[600ms] ${
         leaving ? "opacity-0" : "opacity-100"
       }`}
       style={{
