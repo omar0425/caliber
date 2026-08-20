@@ -55,7 +55,10 @@ export default function CollectionPage() {
           <h1 className="font-serif text-3xl">{heading}</h1>
           <p className="text-base text-muted mt-1">{watches.length} watch{watches.length === 1 ? "" : "es"}</p>
         </div>
-        <Link href="/identify" className="btn btn-gold w-full min-[400px]:w-auto">+ Add watch</Link>
+        <div className="flex flex-col min-[400px]:flex-row gap-2 w-full min-[400px]:w-auto">
+          <Link href="/timeline" className="btn btn-ghost w-full min-[400px]:w-auto">Timeline view</Link>
+          <Link href="/identify" className="btn btn-gold w-full min-[400px]:w-auto">+ Add watch</Link>
+        </div>
       </div>
       <div className="rule" />
 

@@ -80,13 +80,6 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
         </div>
       </div>
 
-      {spec.history && (
-        <div className="pt-1">
-          <p className="label mb-2 text-sm">History &amp; background</p>
-          <p className="break-words text-base leading-relaxed text-muted [overflow-wrap:anywhere]">{spec.history}</p>
-        </div>
-      )}
-
       {spec.notableFacts && spec.notableFacts.length > 0 && (
         <div className="pt-1">
           <p className="label mb-3 text-sm">Notable facts</p>
@@ -101,19 +94,25 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
         </div>
       )}
 
-      {(spec.designer || spec.originCountry || spec.msrp) && (
-        <div className="grid sm:grid-cols-2 gap-x-8">
-          <Row label="Designer" value={spec.designer} />
-          <Row label="Origin" value={spec.originCountry} />
-          <Row label="Original retail" value={spec.msrp ? money(spec.msrp) : null} />
-        </div>
-      )}
-
-      {(spec.scarcity || spec.limitedEdition || spec.productionStatus) && (
-        <div className="card min-w-0 space-y-3 p-4">
-          <div className="flex min-w-0 flex-col items-start justify-between gap-3 min-[400px]:flex-row">
-            <p className="label text-sm">Rarity &amp; availability</p>
+      {/* Era & provenance — one panel for the watch's place in time:
+          years, production status, history, designer, origin, rarity. */}
+      {(spec.yearProduced ||
+        spec.productionStatus ||
+        spec.limitedEdition ||
+        spec.history ||
+        spec.designer ||
+        spec.originCountry ||
+        spec.msrp ||
+        spec.scarcity) && (
+        <div className="card min-w-0 space-y-4 p-4 sm:p-5">
+          <div className="flex min-w-0 flex-col items-start justify-between gap-3 min-[400px]:flex-row min-[400px]:items-center">
+            <p className="label">Era &amp; provenance</p>
             <div className="flex min-w-0 flex-wrap gap-2">
+              {spec.yearProduced && (
+                <span className="max-w-full break-words rounded-full border border-accent px-2.5 py-1 text-sm leading-snug text-accent [overflow-wrap:anywhere]">
+                  {spec.yearProduced}
+                </span>
+              )}
               {spec.productionStatus && (
                 <span className="max-w-full break-words rounded-full border border-line px-2.5 py-1 text-sm leading-snug text-muted [overflow-wrap:anywhere]">
                   {spec.productionStatus}
@@ -126,7 +125,26 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
               )}
             </div>
           </div>
-          {spec.scarcity && <p className="break-words text-base leading-relaxed text-muted [overflow-wrap:anywhere]">{spec.scarcity}</p>}
+
+          {spec.history && (
+            <p className="break-words text-base leading-relaxed text-muted [overflow-wrap:anywhere]">
+              {spec.history}
+            </p>
+          )}
+
+          {(spec.designer || spec.originCountry || spec.msrp) && (
+            <div className="grid sm:grid-cols-2 gap-x-8 border-t border-line/50 pt-2">
+              <Row label="Designer" value={spec.designer} />
+              <Row label="Origin" value={spec.originCountry} />
+              <Row label="Original retail" value={spec.msrp ? money(spec.msrp) : null} />
+            </div>
+          )}
+
+          {spec.scarcity && (
+            <p className="break-words border-t border-line/50 pt-3 text-base leading-relaxed text-muted [overflow-wrap:anywhere]">
+              {spec.scarcity}
+            </p>
+          )}
         </div>
       )}
 
