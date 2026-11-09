@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prepareUploadedImage, persistPreparedImageByHash } from "@/lib/upload";
-import { enforceContentLength, enforceContentType, RequestError } from "@/lib/security";
+import { enforceContentType, readFormDataBody, RequestError } from "@/lib/security";
 import { signedUploadPath } from "@/lib/signedUrl";
 import { recordFailure } from "@/lib/errorLog";
 
@@ -12,9 +12,9 @@ export const runtime = "nodejs";
 // reaped by scripts/cleanup-uploads.mjs once they pass the orphan TTL.
 export async function POST(req: NextRequest) {
   try {
-    enforceContentLength(req, 11 * 1024 * 1024);
     enforceContentType(req, "multipart/form-data");
-    const form = await req.formData();
+    // Byte-checked: a body cut off by the proxy is refused, never stored (B4).
+    const form = await readFormDataBody(req, 11 * 1024 * 1024);
     const file = form.get("image");
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "No image uploaded." }, { status: 400 });

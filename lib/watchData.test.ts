@@ -19,6 +19,13 @@ describe("watch input normalization", () => {
     expect(normalizeWatchInput({ purchaseDate: "bad-date" }).purchaseDate).toBeNull();
   });
 
+  it("parses typed purchase prices instead of silently dropping them", () => {
+    expect(normalizeWatchInput({ purchasePrice: "$1,234.50" }, { partial: true })).toEqual({ purchasePrice: 1234.5 });
+    expect(normalizeWatchInput({ purchasePrice: "1,234" }, { partial: true })).toEqual({ purchasePrice: 1234 });
+    expect(normalizeWatchInput({ purchasePrice: "" }, { partial: true })).toEqual({ purchasePrice: null });
+    expect(() => normalizeWatchInput({ purchasePrice: "about 500" }, { partial: true })).toThrow(/Purchase price/);
+  });
+
   it("protects required fields and constrained collection metadata", () => {
     expect(
       normalizeWatchInput(

@@ -11,6 +11,7 @@ the variant, don't escape.
 |---|---|---|
 | `base` / `surface` / `surface-2` | `#0b0b0e` / `#141419` / `#1c1c23` | page bg, cards, raised fills |
 | `line` | `#2a2a33` | borders, hairlines |
+| `control-line` | `#5b646c` | borders of inputs and secondary buttons — ≥3:1 on surface/surface-2 (WCAG 1.4.11) |
 | `ink` / `muted` | `#f2f1f5` / `#b6b6c0` | primary / secondary text |
 | `accent` / `accent-soft` | `#c8a45c` / `#e6cf9a` | the gold; interactive + display |
 | `danger` / `warn` / `good` | `#e5675f` / `#e0b24a` / `#6fbf8b` | status — **always paired with a shape or label, never colour alone** |

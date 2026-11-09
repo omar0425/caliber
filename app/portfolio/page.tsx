@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { computePortfolio } from "@/lib/portfolio";
 import ValueChart from "@/components/ValueChart";
+import Holdings from "@/components/Holdings";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,8 @@ export default async function PortfolioPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-serif text-3xl">Portfolio</h1>
+        {/* Named like the "Value" tab that leads here. */}
+        <h1 className="font-serif text-3xl">Collection value</h1>
         <p className="text-muted mt-1 leading-relaxed">
           {p.holdings.length} owned {p.holdings.length === 1 ? "piece" : "pieces"} ·{" "}
           {p.costKnownCount} with a recorded cost basis
@@ -85,77 +87,7 @@ export default async function PortfolioPage() {
             <ValueChart data={p.timeline} />
           </div>
 
-          {/* Holdings table */}
-          <div className="card overflow-hidden">
-            <div className="px-4 sm:px-6 py-4 border-b border-line/60">
-              <h2 className="font-serif text-xl">Holdings</h2>
-            </div>
-            <div className="sm:hidden divide-y divide-line/60">
-              {p.holdings.map((h) => (
-                <Link
-                  key={h.id}
-                  href={`/watch/${h.id}`}
-                  className="block p-4 hover:bg-surface-2/50"
-                >
-                  <p className="font-semibold leading-snug break-words">
-                    <span className="text-accent-soft">{h.brand}</span>{" "}
-                    <span className="text-ink">{h.model}</span>
-                  </p>
-                  <dl className="mt-3 space-y-2">
-                    <div className="flex items-start justify-between gap-4">
-                      <dt className="text-muted">Purchase cost</dt>
-                      <dd className="text-right break-words">{money(h.cost)}</dd>
-                    </div>
-                    <div className="flex items-start justify-between gap-4">
-                      <dt className="text-muted">Estimated value</dt>
-                      <dd className="text-right font-medium">{money(h.value)}</dd>
-                    </div>
-                    <div className="flex items-start justify-between gap-4">
-                      <dt className="text-muted">Gain or loss</dt>
-                      <dd className="text-right font-medium" style={{ color: gainColor(h.gain) }}>
-                        {h.gain !== null ? `${signed(h.gain)} (${pct(h.gainPct)})` : "—"}
-                      </dd>
-                    </div>
-                  </dl>
-                </Link>
-              ))}
-            </div>
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full min-w-[560px]">
-                <thead>
-                  <tr className="text-left text-muted border-b border-line/60">
-                    <th className="px-6 py-3 font-medium">Watch</th>
-                    <th className="px-4 py-3 font-medium text-right">Cost</th>
-                    <th className="px-4 py-3 font-medium text-right">Est. value</th>
-                    <th className="px-6 py-3 font-medium text-right">Gain/Loss</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {p.holdings.map((h) => (
-                    <tr key={h.id} className="border-b border-line/40 hover:bg-surface-2/50">
-                      <td className="px-6 py-3">
-                        <Link href={`/watch/${h.id}`} className="hover:text-accent">
-                          <span className="text-accent-soft">{h.brand}</span>{" "}
-                          <span className="text-ink">{h.model}</span>
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-right text-muted">{money(h.cost)}</td>
-                      <td className="px-4 py-3 text-right">{money(h.value)}</td>
-                      <td className="px-6 py-3 text-right" style={{ color: gainColor(h.gain) }}>
-                        {h.gain !== null ? (
-                          <>
-                            {signed(h.gain)} <span className="text-[0.95rem]">({pct(h.gainPct)})</span>
-                          </>
-                        ) : (
-                          <span className="text-muted">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <Holdings holdings={p.holdings} />
         </>
       )}
     </div>

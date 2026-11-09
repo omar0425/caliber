@@ -1,17 +1,27 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import UploadZone from "@/components/UploadZone";
 import SpecSheet from "@/components/SpecSheet";
 import LensButton from "@/components/LensButton";
 import { NoticeBanner } from "@/components/states";
+import StickyActions from "@/components/StickyActions";
+import DuplicateWarning, { duplicateQuery } from "@/components/DuplicateWarning";
+import AnalysisProgress from "@/components/AnalysisProgress";
 import { WatchSpec, WatchSpecSchema } from "@/lib/types";
 import { safeStoredImageUrl } from "@/lib/uploadUrl";
+import type { DuplicateMatch } from "@/lib/duplicates";
+import { ApiError, errorMessage, fetchJson } from "@/lib/fetchJson";
+
 
 const UNSAVED_WARNING =
   "This identification has not been saved. If you leave, the result will be lost and another analysis may cost money. Leave without saving?";
 const IDENTIFY_DRAFT_KEY = "caliber:identify-draft:v1";
+// The identify route allows 120s; give the network a little more before
+// telling the collector it timed out.
+const ANALYSIS_TIMEOUT_MS = 150_000;
 
 export default function IdentifyPage() {
   const router = useRouter();
@@ -29,7 +39,10 @@ export default function IdentifyPage() {
   const [status, setStatus] = useState("owned");
   const [hint, setHint] = useState("");
   const [recovered, setRecovered] = useState(false);
+  const [duplicateCheck, setDuplicateCheck] = useState<{ spec: WatchSpec; matches: DuplicateMatch[] } | null>(null);
+  const duplicates = spec && duplicateCheck?.spec === spec ? duplicateCheck.matches : [];
   const allowLeaveRef = useRef(false);
+  const resultRef = useRef<HTMLDivElement | null>(null);
   const restoringHistoryRef = useRef(false);
   const requestIdRef = useRef(0);
 
@@ -75,6 +88,23 @@ export default function IdentifyPage() {
       if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
     };
   }, [preview]);
+
+  // Warn before the same watch is added twice (same photo, same reference, or
+  // a near-identical title). Best-effort: a failed check never blocks saving.
+  useEffect(() => {
+    if (!spec) return;
+    let cancelled = false;
+    fetchJson<{ matches?: DuplicateMatch[] }>(duplicateQuery({ ...spec, imageUrl }))
+      .then((data) => {
+        if (!cancelled) setDuplicateCheck({ spec, matches: data.matches ?? [] });
+      })
+      .catch(() => {
+        if (!cancelled) setDuplicateCheck({ spec, matches: [] });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [spec, imageUrl]);
 
   useEffect(() => {
     if (!loading && !spec) return;
@@ -195,17 +225,22 @@ export default function IdentifyPage() {
       try {
         const form = new FormData();
         form.append("image", f);
-        const res = await fetch("/api/uploads", { method: "POST", body: form });
-        const data = await res.json();
+        const data = await fetchJson<{ name?: unknown; lensUrl?: unknown }>("/api/uploads", {
+          method: "POST",
+          body: form,
+        });
         if (requestId !== requestIdRef.current) return;
-        if (res.ok) {
-          setUploadName(typeof data.name === "string" ? data.name : null);
-          setUploadedUrl(
-            typeof data.lensUrl === "string" && data.lensUrl.startsWith("/api/uploads/") ? data.lensUrl : null
-          );
+        setUploadName(typeof data.name === "string" ? data.name : null);
+        setUploadedUrl(
+          typeof data.lensUrl === "string" && data.lensUrl.startsWith("/api/uploads/") ? data.lensUrl : null
+        );
+      } catch (e) {
+        // A photo the server rejects (wrong format, too large) won't analyze
+        // either — say so now rather than after the collector taps Analyze.
+        // A network blip is still recoverable: analyze() resends the file.
+        if (requestId === requestIdRef.current && e instanceof ApiError && e.status >= 400) {
+          setError(e.message);
         }
-      } catch {
-        /* pre-upload is best-effort — analyze() still works via the file */
       } finally {
         if (requestId === requestIdRef.current) setUploading(false);
       }
@@ -225,24 +260,29 @@ export default function IdentifyPage() {
     const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
+    revealResult();
     try {
       // Prefer referencing the pre-uploaded photo (uploaded once, already on
       // disk); fall back to sending the file if the pre-upload didn't succeed.
-      let res: Response;
+      type IdentifyResponse = { spec: WatchSpec; imageUrl?: unknown; cached?: boolean };
+      let data: IdentifyResponse;
       if (uploadName) {
-        res = await fetch("/api/identify", {
+        data = await fetchJson<IdentifyResponse>("/api/identify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: uploadName, hint: hint.trim() || undefined }),
+          timeoutMs: ANALYSIS_TIMEOUT_MS,
         });
       } else {
         const form = new FormData();
         form.append("image", file);
         if (hint.trim()) form.append("hint", hint.trim());
-        res = await fetch("/api/identify", { method: "POST", body: form });
+        data = await fetchJson<IdentifyResponse>("/api/identify", {
+          method: "POST",
+          body: form,
+          timeoutMs: ANALYSIS_TIMEOUT_MS,
+        });
       }
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Identification failed.");
       if (requestId !== requestIdRef.current) return;
       const savedImageUrl = safeStoredImageUrl(data.imageUrl);
       if (!savedImageUrl) throw new Error("Caliber returned an invalid saved-photo address.");
@@ -250,30 +290,39 @@ export default function IdentifyPage() {
       setImageUrl(savedImageUrl);
       setCached(Boolean(data.cached));
       setRecovered(false);
+      revealResult();
     } catch (e) {
       if (requestId !== requestIdRef.current) return;
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setError(errorMessage(e, "Something went wrong."));
     } finally {
       if (requestId === requestIdRef.current) setLoading(false);
     }
+  }
+
+  // On a phone the result renders below the photo and hint; bring it into view
+  // when an analysis starts and when it finishes, instead of leaving the
+  // collector looking at an unchanged screen for half a minute.
+  function revealResult() {
+    window.setTimeout(() => {
+      if (!window.matchMedia("(max-width: 1023px)").matches) return;
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
   }
 
   async function save() {
     if (!spec || saving || loading) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/watches", {
+      const data = await fetchJson<{ watch: { id: string } }>("/api/watches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...spec, status, imageUrl, specJson: JSON.stringify(spec) }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to save.");
       allowLeaveRef.current = true;
       window.sessionStorage.removeItem(IDENTIFY_DRAFT_KEY);
       router.replace(`/watch/${data.watch.id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save.");
+      setError(errorMessage(e, "Failed to save."));
       setSaving(false);
     }
   }
@@ -291,7 +340,7 @@ export default function IdentifyPage() {
 
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4">
-          <UploadZone onFile={pickFile} preview={preview} disabled={loading || saving} />
+          <UploadZone onFile={pickFile} onError={setError} preview={preview} disabled={loading || saving} />
           <LensButton name={uploadName} imagePath={uploadedUrl} uploading={uploading} />
           <div className="card p-4 space-y-2">
             <label htmlFor="identification-hint" className="font-semibold text-ink">
@@ -306,6 +355,9 @@ export default function IdentifyPage() {
             </p>
             <textarea
               id="identification-hint"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="done"
               value={hint}
               onChange={(event) => setHint(event.target.value)}
               disabled={loading || saving}
@@ -314,25 +366,33 @@ export default function IdentifyPage() {
               className="input resize-y"
             />
           </div>
-          <button
-            onClick={analyze}
-            disabled={!file || loading || saving}
-            className="btn btn-gold w-full"
-          >
-            {loading ? "Analyzing…" : "Analyze photo"}
-          </button>
           {error && <NoticeBanner tone="danger">{error}</NoticeBanner>}
+          <p className="text-[15px] leading-relaxed text-muted">
+            Know the details already, or no photo handy?{" "}
+            <Link href="/add" className="font-medium text-accent underline-offset-2 hover:underline">
+              Add it manually
+            </Link>{" "}
+            — no AI, no cost.
+          </p>
+          {file && !spec ? (
+            <StickyActions>
+              <button onClick={analyze} disabled={loading || saving || uploading} className="btn btn-gold w-full">
+                {loading ? "Analyzing…" : uploading ? "Uploading photo…" : "Analyze photo"}
+              </button>
+            </StickyActions>
+          ) : (
+            <button
+              onClick={analyze}
+              disabled={!file || loading || saving}
+              className={`btn w-full ${spec ? "btn-ghost" : "btn-gold"}`}
+            >
+              {loading ? "Analyzing…" : spec ? "Analyze again" : "Analyze photo"}
+            </button>
+          )}
         </div>
 
-        <div className="card p-4 sm:p-6 min-h-64 min-w-0">
-          {loading && (
-            <div className="space-y-3">
-              <div className="shimmer h-6 w-1/2 rounded bg-surface-2" />
-              <div className="shimmer h-4 w-full rounded bg-surface-2" />
-              <div className="shimmer h-4 w-2/3 rounded bg-surface-2" />
-              <p className="text-muted pt-2">Researching reference & market value…</p>
-            </div>
-          )}
+        <div ref={resultRef} className="card p-4 sm:p-6 min-h-64 min-w-0 scroll-mt-6 lg:scroll-mt-24">
+          {loading && <AnalysisProgress label="Researching reference & market value…" />}
           {!loading && !spec && (
             <div className="h-full flex items-center justify-center text-center text-muted">
               Your spec sheet will appear here.
@@ -350,13 +410,21 @@ export default function IdentifyPage() {
                   ✓ Loaded from a previous analysis of this exact photo — no new charge.
                 </NoticeBanner>
               )}
+              <NoticeBanner tone="warn" role="status">
+                Analysis ready, but it is not saved yet. Save this watch before leaving the page.
+              </NoticeBanner>
+              <DuplicateWarning
+                matches={duplicates}
+                currentName={`${spec.brand} ${spec.model}`}
+                onAdoptName={(match) =>
+                  setSpec((current) => (current ? { ...current, brand: match.brand, model: match.model } : current))
+                }
+              />
               <SpecSheet spec={spec} />
-              <div className="pt-2 border-t border-line/60 space-y-3">
-                <NoticeBanner tone="warn" role="status">
-                  Analysis ready, but it is not saved yet. Save this watch before leaving the page.
-                </NoticeBanner>
-                <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-center gap-2">
-                  <label htmlFor="watch-status" className="text-[0.95rem] font-semibold text-muted">
+              <StickyActions>
+                {/* One row on a phone so the pinned bar stays short. */}
+                <div className="flex items-center gap-2">
+                  <label htmlFor="watch-status" className="sr-only">
                     Add to collection as
                   </label>
                   <select
@@ -364,21 +432,17 @@ export default function IdentifyPage() {
                     value={status}
                     onChange={(e) => setStatus(e.target.value)}
                     disabled={loading || saving}
-                    className="input w-full min-[400px]:max-w-44"
+                    className="input w-auto shrink-0"
                   >
                     <option value="owned">Owned</option>
                     <option value="wishlist">Wishlist</option>
                     <option value="watching">Watching</option>
                   </select>
+                  <button onClick={save} disabled={saving || loading} className="btn btn-gold min-w-0 flex-1">
+                    {saving ? "Saving…" : duplicates.length > 0 ? "Save anyway" : "Save to collection"}
+                  </button>
                 </div>
-                <button
-                  onClick={save}
-                  disabled={saving || loading}
-                  className="btn btn-gold w-full"
-                >
-                  {saving ? "Saving…" : "Save to collection"}
-                </button>
-              </div>
+              </StickyActions>
             </div>
           )}
         </div>

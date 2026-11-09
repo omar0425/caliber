@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { sessionSigningSecret } from "./auth";
 
 // Short-lived signed URLs for uploaded images.
 //
@@ -18,15 +19,18 @@ import crypto from "node:crypto";
 // the bearer-capability exposure minimal.
 export const SIGNED_UPLOAD_TTL_SECONDS = 5 * 60;
 
-const NAME_PATTERN = /^[a-f0-9]{16,}\.(?:jpg|png|webp|gif)$/;
+const NAME_PATTERN = /^[a-f0-9]{16,}\.(?:jpg|png|webp|gif|pdf)$/;
 
-// In development the auth secret may be unset (the proxy passes everything
+// Signed with the same base secret as session cookies (lib/auth
+// sessionSigningSecret): CALIBER_SESSION_SECRET when set, otherwise
+// CALIBER_AUTH_SECRET as before.
+// In development the secret may be unset (the proxy passes everything
 // through anyway) — a per-process random secret keeps signing functional.
-// In production CALIBER_AUTH_SECRET is required, matching the auth system.
+// In production a secret is required, matching the auth system.
 const devFallbackSecret = crypto.randomBytes(32).toString("base64url");
 
 function signingSecret(): string | null {
-  const configured = process.env.CALIBER_AUTH_SECRET?.trim();
+  const configured = sessionSigningSecret();
   // Domain-separate from session-token signing so upload signatures and
   // session signatures can never be confused for one another.
   if (configured) return `${configured}::upload-signing-v1`;

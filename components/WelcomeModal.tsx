@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "./Logo";
 
@@ -18,6 +18,42 @@ type Step = {
 export default function WelcomeModal({ onFinish }: { onFinish: () => void }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // A real modal: the page behind can't scroll (iOS scrolled it through the
+  // backdrop), focus starts inside and stays there (onKeyDown below), and
+  // Escape skips — like the Skip button.
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    dialogRef.current?.querySelector<HTMLElement>("button")?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus?.();
+    };
+  }, []);
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") {
+      finish();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = [
+      ...event.currentTarget.querySelectorAll<HTMLElement>("button, a[href], input, select, textarea"),
+    ].filter((el) => !el.hasAttribute("disabled"));
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   function finish() {
     try {
@@ -27,6 +63,7 @@ export default function WelcomeModal({ onFinish }: { onFinish: () => void }) {
     }
     onFinish();
   }
+
 
   const steps: Step[] = [
     {
@@ -99,8 +136,10 @@ export default function WelcomeModal({ onFinish }: { onFinish: () => void }) {
   const current = steps[step];
 
   return (
-    <div className="modal-enter fixed inset-0 z-[60] flex items-center justify-center p-2 min-[400px]:p-4 bg-black/70 backdrop-blur-sm">
+    <div className="no-print modal-enter fixed inset-0 z-[60] flex items-center justify-center p-2 min-[400px]:p-4 bg-black/70 backdrop-blur-sm [overscroll-behavior:contain]">
       <div
+        ref={dialogRef}
+        onKeyDown={onKeyDown}
         role="dialog"
         aria-modal="true"
         aria-label={`Welcome to Caliber — step ${step + 1} of ${steps.length}`}

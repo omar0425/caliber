@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { errorMessage, fetchJson } from "@/lib/fetchJson";
 
 type Entry = {
   id: string;
@@ -43,13 +44,11 @@ export default function ErrorLogViewer() {
     setBusy(true);
     setNotice(null);
     try {
-      const res = await fetch("/api/logs", { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not clear the log.");
+      const data = await fetchJson<{ cleared: number }>("/api/logs", { method: "DELETE" });
       setNotice(`Cleared ${data.cleared} entr${data.cleared === 1 ? "y" : "ies"}.`);
       await load();
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Could not clear the log.");
+      setNotice(errorMessage(e, "Could not clear the log."));
     } finally {
       setBusy(false);
     }

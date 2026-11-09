@@ -42,12 +42,14 @@ export type PortfolioSummary = {
   timeline: { date: string; value: number }[];
 };
 
-export function computePortfolio(watches: WatchLite[]): PortfolioSummary {
+export function computePortfolio(watches: WatchLite[], now: Date = new Date()): PortfolioSummary {
   const owned = watches.filter((w) => w.status === "owned");
 
   const holdings: Holding[] = owned.map((w) => {
     const value = midpoint(w.estValueLow, w.estValueHigh);
-    const cost = w.purchasePrice ?? null;
+    // A $0 purchase price is almost always "not entered" — counting it as a
+    // cost basis showed every such watch as a 100% gain.
+    const cost = typeof w.purchasePrice === "number" && w.purchasePrice > 0 ? w.purchasePrice : null;
     const gain = value !== null && cost !== null ? value - cost : null;
     const gainPct = gain !== null && cost ? (gain / cost) * 100 : null;
     return { id: w.id, brand: w.brand, model: w.model, imageUrl: w.imageUrl, cost, value, gain, gainPct };
@@ -73,13 +75,15 @@ export function computePortfolio(watches: WatchLite[]): PortfolioSummary {
     holdings: holdings.sort((a, b) => (b.value ?? 0) - (a.value ?? 0)),
     best: ranked[0] ?? null,
     worst: ranked.length > 1 ? ranked[ranked.length - 1] : null,
-    timeline: buildTimeline(owned),
+    timeline: buildTimeline(owned, totalValue, now),
   };
 }
 
 // Portfolio value over time: for each date a valuation was recorded, sum the
-// latest-known value of every watch that had been valued by then.
-function buildTimeline(owned: WatchLite[]): { date: string; value: number }[] {
+// latest-known value of every watch that had been valued by then. The series
+// always ends today at the headline total, so the chart and the "Est.
+// collection value" tile never show two different current numbers.
+function buildTimeline(owned: WatchLite[], currentTotal: number, now: Date): { date: string; value: number }[] {
   type Ev = { watchId: string; date: number; mid: number };
   const events: Ev[] = [];
   for (const w of owned) {
@@ -105,5 +109,10 @@ function buildTimeline(owned: WatchLite[]): { date: string; value: number }[] {
     for (const v of latest.values()) sum += v;
     series.push({ date: new Date(d).toISOString().slice(0, 10), value: Math.round(sum) });
   }
+  const today = now.toISOString().slice(0, 10);
+  const current = Math.round(currentTotal);
+  const last = series[series.length - 1];
+  if (last.date === today) last.value = current;
+  else series.push({ date: today, value: current });
   return series;
 }

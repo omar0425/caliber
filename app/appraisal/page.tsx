@@ -1,12 +1,34 @@
 import { prisma } from "@/lib/prisma";
 import { midpoint } from "@/lib/portfolio";
 import PrintButton from "@/components/PrintButton";
+import LocalDate from "@/components/LocalDate";
+import { thumbnailUrl } from "@/lib/uploadUrl";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 function money(n: number | null): string {
   if (n === null) return "—";
   return `$${Math.round(n).toLocaleString("en-US")}`;
+}
+
+// A small photo per piece — an insurance schedule is far more useful when
+// each item can be recognized at a glance.
+function Thumb({ url }: { url: string | null }) {
+  if (!url) return <span className="h-14 w-14 shrink-0 rounded border border-[#ddd] bg-[#f4f4f4]" aria-hidden />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={thumbnailUrl(url, 320) ?? url}
+      alt=""
+      width={56}
+      height={56}
+      // Not lazy: a printed appraisal must include every photo, and small
+      // thumbnails (~4 KB each) keep that cheap.
+      decoding="async"
+      className="h-14 w-14 shrink-0 rounded border border-[#ddd] object-cover"
+    />
+  );
 }
 
 export default async function AppraisalPage() {
@@ -16,12 +38,16 @@ export default async function AppraisalPage() {
   });
 
   const total = watches.reduce((s, w) => s + (midpoint(w.estValueLow, w.estValueHigh) ?? 0), 0);
-  const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-center min-[400px]:justify-between gap-3 no-print">
-        <p className="text-muted">Preview — this page is formatted for printing.</p>
+        <div>
+          <Link href="/settings" className="inline-flex min-h-11 items-center font-medium text-muted hover:text-ink">
+            ← Settings
+          </Link>
+          <p className="text-muted">Preview — this page is formatted for printing.</p>
+        </div>
         <PrintButton />
       </div>
 
@@ -33,7 +59,7 @@ export default async function AppraisalPage() {
             <p className="text-[#6a6a72]">Collection Appraisal Summary</p>
           </div>
           <div className="text-left min-[400px]:text-right text-[#6a6a72]">
-            <p>Date: {today}</p>
+            <p>Date: <LocalDate /></p>
             <p>{watches.length} timepieces</p>
           </div>
         </div>
@@ -42,9 +68,12 @@ export default async function AppraisalPage() {
         <div className="sm:hidden print:hidden mt-5 divide-y divide-[#ddd] border-y border-[#ddd]">
           {watches.map((w) => (
             <article key={w.id} className="py-4">
-              <h2 className="text-lg font-semibold text-[#14141a] leading-snug break-words">
-                {w.brand} {w.model}
-              </h2>
+              <div className="flex items-start gap-3">
+                <Thumb url={w.imageUrl} />
+                <h2 className="min-w-0 text-lg font-semibold text-[#14141a] leading-snug break-words">
+                  {w.brand} {w.model}
+                </h2>
+              </div>
               <dl className="mt-3 space-y-2">
                 <div className="flex items-start justify-between gap-4">
                   <dt className="text-[#6a6a72]">Reference</dt>
@@ -86,8 +115,13 @@ export default async function AppraisalPage() {
             {watches.map((w) => (
               <tr key={w.id} className="border-b border-[#eee]">
                 <td className="py-2 pr-2">
-                  <span className="font-semibold text-[#14141a]">{w.brand}</span>{" "}
-                  <span className="text-[#33333a]">{w.model}</span>
+                  <div className="flex items-center gap-3">
+                    <Thumb url={w.imageUrl} />
+                    <span>
+                      <span className="font-semibold text-[#14141a]">{w.brand}</span>{" "}
+                      <span className="text-[#33333a]">{w.model}</span>
+                    </span>
+                  </div>
                 </td>
                 <td className="py-2 px-2 text-[#33333a]">{w.referenceNumber ?? "—"}</td>
                 <td className="py-2 px-2 text-[#33333a]">{w.condition ?? "—"}</td>

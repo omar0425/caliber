@@ -1,9 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { thumbnailUrl } from "@/lib/uploadUrl";
+import { prepareImageForUpload } from "@/lib/imagePrep";
+import { errorMessage, fetchJson } from "@/lib/fetchJson";
+import PhotoViewer from "./PhotoViewer";
 
 export type PhotoLite = { id: string; url: string; caption: string | null };
+
+const MAX_PHOTOS_PER_PICK = 10;
 
 export default function PhotoGallery({
   watchId,
@@ -17,23 +23,44 @@ export default function PhotoGallery({
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<PhotoLite | null>(null);
+  const closeViewer = useCallback(() => setViewing(null), []);
   const [error, setError] = useState<string | null>(null);
 
-  async function upload(files: FileList | null) {
-    if (!files || files.length === 0) return;
+  // One photo at a time, each shrunk on the device first: a batch of phone
+  // originals used to go up as one 30–50 MB request and fail as a whole if a
+  // single file was rejected.
+  async function upload(list: File[]) {
+    if (list.length === 0) return;
+    if (list.length > MAX_PHOTOS_PER_PICK) {
+      setError(`Add up to ${MAX_PHOTOS_PER_PICK} photos at a time.`);
+      return;
+    }
     setBusy(true);
     setError(null);
-    try {
-      const form = new FormData();
-      Array.from(files).forEach((f) => form.append("photos", f));
-      const res = await fetch(`/api/watches/${watchId}/photos`, { method: "POST", body: form });
-      if (!res.ok) throw new Error((await res.json()).error || "Upload failed.");
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed.");
-    } finally {
-      setBusy(false);
+    const failed: string[] = [];
+    let added = 0;
+    for (const [index, original] of list.entries()) {
+      setProgress(`Uploading ${index + 1} of ${list.length}…`);
+      try {
+        const file = await prepareImageForUpload(original);
+        const form = new FormData();
+        form.append("photos", file);
+        await fetchJson(`/api/watches/${watchId}/photos`, { method: "POST", body: form, timeoutMs: 60_000 });
+        added += 1;
+      } catch (e) {
+        failed.push(`${original.name}: ${errorMessage(e, "upload failed")}`);
+      }
     }
+    setProgress(null);
+    setBusy(false);
+    if (failed.length) {
+      setError(
+        `${added ? `${added} added. ` : ""}${failed.length} couldn't be added — ${failed.join("; ")}`
+      );
+    }
+    if (added) router.refresh();
   }
 
   async function setCover(id: string) {
@@ -72,10 +99,11 @@ export default function PhotoGallery({
 
   return (
     <div className="card min-w-0 space-y-4 p-4 sm:p-6">
+      {viewing && <PhotoViewer url={viewing.url} alt={viewing.caption ?? "Watch photo"} onClose={closeViewer} />}
       <div className="flex flex-col items-start justify-between gap-3 min-[400px]:flex-row min-[400px]:items-center">
         <h3 className="font-serif text-2xl">Photos</h3>
         <button onClick={() => inputRef.current?.click()} disabled={busy} className="btn btn-ghost min-h-12 w-full max-w-full min-[400px]:w-auto">
-          {busy ? "Uploading…" : "+ Add photos"}
+          {busy ? progress ?? "Uploading…" : "+ Add photos"}
         </button>
         <input
           ref={inputRef}
@@ -83,7 +111,11 @@ export default function PhotoGallery({
           accept="image/*"
           multiple
           className="hidden"
-          onChange={(e) => upload(e.target.files)}
+          onChange={(e) => {
+            const picked = Array.from(e.target.files ?? []);
+            e.target.value = ""; // so picking the same photo again still works
+            void upload(picked);
+          }}
         />
       </div>
 
@@ -97,10 +129,10 @@ export default function PhotoGallery({
             const isCover = p.url === coverUrl;
             return (
               <div key={p.id} className="relative min-w-0 aspect-square overflow-hidden rounded-lg border border-line">
-                <a href={p.url} target="_blank" rel="noreferrer" aria-label="View full photo">
+                <button type="button" onClick={() => setViewing(p)} aria-label="View full photo" className="block h-full w-full">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.url} alt={p.caption ?? "Watch photo"} className="w-full h-full object-cover" />
-                </a>
+                  <img src={thumbnailUrl(p.url, 640) ?? p.url} width={320} height={320} loading="lazy" decoding="async" alt={p.caption ?? "Watch photo"} className="w-full h-full object-cover" />
+                </button>
                 {isCover && (
                   <span className="absolute top-1 left-1 rounded bg-accent px-2 py-1 text-sm font-semibold text-black">
                     Cover

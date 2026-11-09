@@ -11,6 +11,10 @@
   --color-surface-3: #1a1d22; /* card nested inside a card */
   --color-line: #1e2126;
   --color-line-soft: #16181c;
+  /* Borders of things you can type in or tap (inputs, secondary buttons).
+     --color-line is a hairline (≈1.2:1) and made fields read as floating
+     text outdoors; this clears WCAG 1.4.11's 3:1 on surface and surface-2. */
+  --color-control-line: #5b646c;
   --color-ink: #edf0f2;
   /* Secondary text. Lifted from #7c8489 — that read as barely-there grey on
      phones (and fell under 4.5:1 on surface-3). Keep muted ≥4.5:1 on every
@@ -152,7 +156,7 @@
   .btn-ghost {
     background: var(--color-surface-2);
     color: var(--color-ink);
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-control-line);
   }
   /* Danger action: ghost weight, destructive signal */
   .btn-danger {
@@ -186,7 +190,7 @@
     width: 100%;
     min-width: 0;
     background: var(--color-surface-2);
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-control-line);
     border-radius: var(--radius-control);
     padding: 0.7rem 0.9rem;
     color: var(--color-ink);

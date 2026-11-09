@@ -8,15 +8,15 @@ import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 
-// GET /api/uploads/sign?name=<stored image name> — mint a fresh short-lived
-// signed URL for one uploaded image. Session-protected by the auth proxy like
+// GET /api/uploads/sign?name=<stored file name> — mint a fresh short-lived
+// signed URL for one uploaded image or PDF document. Session-protected by the auth proxy like
 // every other API route; the SIGNED result is what gets handed to Google Lens.
 // The Lens button calls this at click time, so a link can never be expired at
 // the moment it is used, and the TTL stays short.
 export async function GET(req: NextRequest) {
   try {
     const name = req.nextUrl.searchParams.get("name") ?? "";
-    if (!/^[a-f0-9]{16,}\.(?:jpg|png|webp|gif)$/.test(name)) {
+    if (!/^[a-f0-9]{16,}\.(?:jpg|png|webp|gif|pdf)$/.test(name)) {
       throw new RequestError("Invalid uploaded-photo reference.", 400);
     }
     try {

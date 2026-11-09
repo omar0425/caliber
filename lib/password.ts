@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { prisma } from "./prisma";
 import { verifyCredentials, verifyUsername } from "./auth";
+import { newSessionVersion, rememberSessionVersion, SESSION_VERSION_SETTING } from "./sessionVersion";
 
 const PASSWORD_HASH_SETTING = "auth_password_hash";
 const HASH_PREFIX = "scrypt:v1";
@@ -55,18 +56,34 @@ export async function verifyLoginCredentials(user: string, password: string): Pr
   return verifyUsername(user) && verifyPasswordHash(password, stored);
 }
 
+// Replace the login password and revoke every existing session.
+// Returns the new session version (the caller re-issues its own cookie with
+// it, so the device that made the change stays signed in), or null when the
+// current password is wrong.
 export async function changeLoginPassword(
   currentPassword: string,
   newPassword: string
-): Promise<boolean> {
+): Promise<string | null> {
   const user = process.env.CALIBER_AUTH_USER?.trim() || "caliber";
-  if (!(await verifyLoginCredentials(user, currentPassword))) return false;
+  if (!(await verifyLoginCredentials(user, currentPassword))) return null;
 
   const value = await createPasswordHash(newPassword);
-  await prisma.setting.upsert({
-    where: { key: PASSWORD_HASH_SETTING },
-    create: { key: PASSWORD_HASH_SETTING, value },
-    update: { value },
-  });
-  return true;
+  const sessionVersion = newSessionVersion();
+  // One transaction: a new password without a new session version (or the
+  // reverse) would either leave old sessions alive or sign everyone out
+  // without a working password.
+  await prisma.$transaction([
+    prisma.setting.upsert({
+      where: { key: PASSWORD_HASH_SETTING },
+      create: { key: PASSWORD_HASH_SETTING, value },
+      update: { value },
+    }),
+    prisma.setting.upsert({
+      where: { key: SESSION_VERSION_SETTING },
+      create: { key: SESSION_VERSION_SETTING, value: sessionVersion },
+      update: { value: sessionVersion },
+    }),
+  ]);
+  rememberSessionVersion(sessionVersion);
+  return sessionVersion;
 }

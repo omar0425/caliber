@@ -1,5 +1,7 @@
 import { WatchSpec } from "@/lib/types";
 import ConfidenceBadge from "./ConfidenceBadge";
+import ExpandableText from "./ExpandableText";
+import { cleanAiText } from "@/lib/aiText";
 
 function money(n?: number | null) {
   if (n === null || n === undefined) return null;
@@ -27,7 +29,14 @@ function chipworthy(v?: string | null): v is string {
   return !!v && v.length <= CHIP_MAX_CHARS;
 }
 
-export default function SpecSheet({ spec }: { spec: WatchSpec }) {
+// `titleAs="h1"` when the spec sheet IS the page (a watch's own page); the
+// identify screen already has its own h1.
+export default function SpecSheet({ spec, titleAs = "h2" }: { spec: WatchSpec; titleAs?: "h1" | "h2" }) {
+  const Title = titleAs;
+  const summary = cleanAiText(spec.summary);
+  const history = cleanAiText(spec.history);
+  const scarcity = cleanAiText(spec.scarcity);
+  const facts = (spec.notableFacts ?? []).map(cleanAiText).filter(Boolean);
   const value =
     spec.estValueLow && spec.estValueHigh
       ? `${money(spec.estValueLow)} – ${money(spec.estValueHigh)}`
@@ -35,11 +44,11 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
 
   const eraNotes: Array<{ label: string; text: string }> = [];
   if (spec.yearProduced && !chipworthy(spec.yearProduced))
-    eraNotes.push({ label: "Year(s)", text: spec.yearProduced });
+    eraNotes.push({ label: "Year(s)", text: cleanAiText(spec.yearProduced) });
   if (spec.productionStatus && !chipworthy(spec.productionStatus))
-    eraNotes.push({ label: "Production", text: spec.productionStatus });
+    eraNotes.push({ label: "Production", text: cleanAiText(spec.productionStatus) });
   if (spec.limitedEdition && !chipworthy(spec.limitedEdition))
-    eraNotes.push({ label: "Limited edition", text: spec.limitedEdition });
+    eraNotes.push({ label: "Limited edition", text: cleanAiText(spec.limitedEdition) });
 
   return (
     <div className="min-w-0 space-y-6">
@@ -49,9 +58,9 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
       <div className="flex min-w-0 flex-col items-start justify-between gap-3 sm:flex-row sm:gap-4">
         <div className="min-w-0">
           <p className="text-accent text-sm font-medium tracking-wide uppercase">{spec.brand}</p>
-          <h2 className="mt-1 break-words font-serif text-[1.75rem] leading-tight sm:text-3xl">
+          <Title className="mt-1 break-words font-serif text-[1.75rem] leading-tight sm:text-3xl">
             {spec.model}
-          </h2>
+          </Title>
           {spec.nickname && <p className="mt-2 break-words leading-snug text-muted">“{spec.nickname}”</p>}
           {spec.observedBrand && (
             <p className="mt-3 break-words text-sm leading-relaxed text-good">
@@ -64,7 +73,7 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
         </div>
       </div>
 
-      {spec.summary && <p className="break-words leading-relaxed text-muted [overflow-wrap:anywhere]">{spec.summary}</p>}
+      {summary && <ExpandableText text={summary} className="text-muted" />}
 
       {value && (
         <div className="card flex min-w-0 flex-col items-start justify-between gap-2 p-4 min-[400px]:flex-row min-[400px]:items-center">
@@ -97,11 +106,11 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
         </div>
       </div>
 
-      {spec.notableFacts && spec.notableFacts.length > 0 && (
+      {facts.length > 0 && (
         <div className="pt-1">
           <p className="label mb-3 text-sm">Notable facts</p>
           <ul className="space-y-2.5">
-            {spec.notableFacts.map((f, i) => (
+            {facts.map((f, i) => (
               <li key={i} className="flex min-w-0 gap-2.5 leading-relaxed">
                 <span className="text-accent shrink-0">•</span>
                 <span className="min-w-0 break-words text-muted [overflow-wrap:anywhere]">{f}</span>
@@ -156,11 +165,7 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
             </div>
           ))}
 
-          {spec.history && (
-            <p className="break-words leading-relaxed text-muted [overflow-wrap:anywhere]">
-              {spec.history}
-            </p>
-          )}
+          {history && <ExpandableText text={history} className="text-muted" />}
 
           {(spec.designer || spec.originCountry || spec.msrp) && (
             <div className="grid sm:grid-cols-2 gap-x-8 border-t border-line/50 pt-2">
@@ -170,10 +175,10 @@ export default function SpecSheet({ spec }: { spec: WatchSpec }) {
             </div>
           )}
 
-          {spec.scarcity && (
-            <p className="break-words border-t border-line/50 pt-3 leading-relaxed text-muted [overflow-wrap:anywhere]">
-              {spec.scarcity}
-            </p>
+          {scarcity && (
+            <div className="border-t border-line/50 pt-3">
+              <ExpandableText text={scarcity} className="text-muted" />
+            </div>
           )}
         </div>
       )}

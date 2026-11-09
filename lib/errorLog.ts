@@ -30,6 +30,8 @@ export function redactSecrets(input: string): string {
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
     "CALIBER_AUTH_SECRET",
+    "CALIBER_SESSION_SECRET",
+    "CALIBER_KEY_ENCRYPTION_SECRET",
     "CALIBER_AUTH_USER",
   ]) {
     const value = process.env[name]?.trim();

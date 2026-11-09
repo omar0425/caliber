@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { nextServiceDue, serviceStatus, SERVICE_LABEL, SERVICE_COLOR } from "@/lib/service";
+import { MONEY_HINT, parseMoney } from "@/lib/money";
+import { formatDateOnly } from "@/lib/dates";
+import { errorMessage, fetchJson } from "@/lib/fetchJson";
 
 export type ServiceLite = {
   id: string;
@@ -38,23 +41,36 @@ export default function ServiceLog({
   const [interval, setInterval] = useState(String(intervalYears ?? 5));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fieldId = useId();
 
   const due = nextServiceDue(lastServicedDate, purchaseDate, Number(interval) || 5);
   const status = serviceStatus(due);
 
   async function add() {
-    if (!date) return;
-    setBusy(true);
+    if (!date || busy) return;
     setError(null);
-    await fetch(`/api/watches/${watchId}/service`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date, type, provider, cost, notes }),
-    });
-    setBusy(false);
-    setOpen(false);
-    setDate(""); setProvider(""); setCost(""); setNotes(""); setType("Full service");
-    router.refresh();
+    const parsedCost = parseMoney(cost);
+    if (Number.isNaN(parsedCost)) {
+      setError(`Service cost: ${MONEY_HINT}`);
+      return;
+    }
+    setBusy(true);
+    try {
+      await fetchJson(`/api/watches/${watchId}/service`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, type, provider, cost: parsedCost, notes }),
+      });
+      // Only clear the form once the record is really saved — on failure the
+      // collector keeps everything they typed and sees why.
+      setOpen(false);
+      setDate(""); setProvider(""); setCost(""); setNotes(""); setType("Full service");
+      router.refresh();
+    } catch (e) {
+      setError(errorMessage(e, "Could not save the service record."));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function remove(id: string) {
@@ -62,37 +78,43 @@ export default function ServiceLog({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/service/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Could not delete the service record.");
+      await fetchJson(`/api/service/${id}`, { method: "DELETE" });
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not delete the service record.");
+      setError(errorMessage(e, "Could not delete the service record."));
     } finally {
       setBusy(false);
     }
   }
 
   async function saveInterval(v: string) {
+    const previous = interval;
     setInterval(v);
-    await fetch(`/api/watches/${watchId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ serviceIntervalYears: Number(v) }),
-    });
-    router.refresh();
+    setError(null);
+    try {
+      await fetchJson(`/api/watches/${watchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceIntervalYears: Number(v) }),
+      });
+      router.refresh();
+    } catch (e) {
+      setInterval(previous);
+      setError(errorMessage(e, "Could not change the service interval."));
+    }
   }
 
   return (
     <div className="card min-w-0 space-y-4 p-4 sm:p-6">
       <div className="flex flex-col items-start justify-between gap-3 min-[400px]:flex-row min-[400px]:items-center">
         <h3 className="font-serif text-2xl leading-tight">Service &amp; maintenance</h3>
-        <button onClick={() => setOpen((o) => !o)} className="btn btn-ghost min-h-12 w-full max-w-full min-[400px]:w-auto">
+        <button type="button" onClick={() => { setOpen((o) => !o); setError(null); }} className="btn btn-ghost min-h-12 w-full max-w-full min-[400px]:w-auto">
           {open ? "Cancel" : "+ Log service"}
         </button>
       </div>
 
-      {error && (
-        <p className="break-words text-[15px] leading-relaxed text-danger [overflow-wrap:anywhere]">
+      {error && !open && (
+        <p role="alert" className="break-words text-[15px] leading-relaxed text-danger [overflow-wrap:anywhere]">
           {error}
         </p>
       )}
@@ -105,7 +127,7 @@ export default function ServiceLog({
             <span style={{ color: SERVICE_COLOR[status] }} className="font-medium">{SERVICE_LABEL[status]}</span>
             {due && (
               <span className="text-muted">
-                {" "}· next due {due.toLocaleDateString()}
+                {" "}· next due {formatDateOnly(due)}
                 {lastServicedDate ? "" : " (based on purchase date)"}
               </span>
             )}
@@ -123,35 +145,46 @@ export default function ServiceLog({
 
       {/* Add form */}
       {open && (
-        <div className="min-w-0 space-y-4 rounded-lg border border-line/60 p-4">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void add();
+          }}
+          className="min-w-0 space-y-4 rounded-lg border border-line/60 p-4"
+        >
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <label className="label text-sm">Date</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input mt-1 min-h-12" />
+              <label htmlFor={`${fieldId}-date`} className="label text-sm">Date</label>
+              <input id={`${fieldId}-date`} type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input mt-1 min-h-12" />
             </div>
             <div>
-              <label className="label text-sm">Type</label>
-              <select value={type} onChange={(e) => setType(e.target.value)} className="input mt-1 min-h-12">
+              <label htmlFor={`${fieldId}-type`} className="label text-sm">Type</label>
+              <select id={`${fieldId}-type`} value={type} onChange={(e) => setType(e.target.value)} className="input mt-1 min-h-12">
                 {TYPES.map((t) => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div>
-              <label className="label text-sm">Watchmaker / service center</label>
-              <input value={provider} onChange={(e) => setProvider(e.target.value)} className="input mt-1 min-h-12" placeholder="e.g. Rolex Service Center" />
+              <label htmlFor={`${fieldId}-provider`} className="label text-sm">Watchmaker / service center</label>
+              <input id={`${fieldId}-provider`} value={provider} onChange={(e) => setProvider(e.target.value)} className="input mt-1 min-h-12" placeholder="e.g. Rolex Service Center" />
             </div>
             <div>
-              <label className="label text-sm">Cost (USD)</label>
-              <input value={cost} onChange={(e) => setCost(e.target.value)} inputMode="decimal" className="input mt-1 min-h-12" placeholder="e.g. 800" />
+              <label htmlFor={`${fieldId}-cost`} className="label text-sm">Cost (USD)</label>
+              <input id={`${fieldId}-cost`} value={cost} onChange={(e) => setCost(e.target.value)} inputMode="decimal" className="input mt-1 min-h-12" placeholder="e.g. 800" />
             </div>
           </div>
           <div>
-            <label className="label text-sm">Notes</label>
-            <input value={notes} onChange={(e) => setNotes(e.target.value)} className="input mt-1 min-h-12" placeholder="Work performed, parts replaced…" />
+            <label htmlFor={`${fieldId}-notes`} className="label text-sm">Notes</label>
+            <input id={`${fieldId}-notes`} enterKeyHint="done" value={notes} onChange={(e) => setNotes(e.target.value)} className="input mt-1 min-h-12" placeholder="Work performed, parts replaced…" />
           </div>
-          <button onClick={add} disabled={busy || !date} className="btn btn-gold min-h-12 w-full max-w-full min-[400px]:w-auto">
+          {error && (
+            <p role="alert" className="break-words text-[15px] leading-relaxed text-danger [overflow-wrap:anywhere]">
+              {error}
+            </p>
+          )}
+          <button type="submit" disabled={busy || !date} className="btn btn-gold min-h-12 w-full max-w-full min-[400px]:w-auto">
             {busy ? "Saving…" : "Save service record"}
           </button>
-        </div>
+        </form>
       )}
 
       {/* History */}
@@ -164,7 +197,7 @@ export default function ServiceLog({
               <div className="min-w-0">
                 <p className="break-words leading-relaxed [overflow-wrap:anywhere]">
                   <span className="font-medium">{r.type}</span>
-                  <span className="text-muted"> · {new Date(r.date).toLocaleDateString()}</span>
+                  <span className="text-muted"> · {formatDateOnly(r.date)}</span>
                 </p>
                 <p className="mt-1 break-words text-sm leading-relaxed text-muted [overflow-wrap:anywhere]">
                   {[r.provider, r.cost != null ? `$${r.cost.toLocaleString()}` : null, r.notes]

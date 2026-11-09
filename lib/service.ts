@@ -11,7 +11,8 @@ export function nextServiceDue(
   const base = lastServicedDate ?? purchaseDate;
   if (!base) return null;
   const d = new Date(base);
-  d.setFullYear(d.getFullYear() + (intervalYears ?? 5));
+  // UTC, to match how date-only values are stored and shown (lib/dates.ts).
+  d.setUTCFullYear(d.getUTCFullYear() + (intervalYears ?? 5));
   return d;
 }
 

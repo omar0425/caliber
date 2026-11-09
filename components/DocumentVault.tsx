@@ -2,6 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { prepareImageForUpload } from "@/lib/imagePrep";
+import { errorMessage, fetchJson } from "@/lib/fetchJson";
+import SignedLink from "./SignedLink";
 
 export type DocLite = { id: string; url: string; name: string; kind: string; mimeType: string | null };
 
@@ -15,6 +18,8 @@ const KINDS = [
 
 const KIND_LABEL: Record<string, string> = Object.fromEntries(KINDS.map((k) => [k.key, k.label]));
 
+const MAX_PDF_BYTES = 20 * 1024 * 1024;
+
 export default function DocumentVault({ watchId, documents }: { watchId: string; documents: DocLite[] }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -22,21 +27,25 @@ export default function DocumentVault({ watchId, documents }: { watchId: string;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function upload(files: FileList | null) {
-    const file = files?.[0];
-    if (!file) return;
+  async function upload(original: File | undefined) {
+    if (!original) return;
+    if (original.type === "application/pdf" && original.size > MAX_PDF_BYTES) {
+      setError("That PDF is larger than 20 MB. Try a smaller scan.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
+      // Photos of papers are shrunk on the device like any other photo.
+      const file = original.type === "application/pdf" ? original : await prepareImageForUpload(original);
       const form = new FormData();
       form.append("file", file);
       form.append("kind", kind);
-      form.append("name", file.name);
-      const res = await fetch(`/api/watches/${watchId}/documents`, { method: "POST", body: form });
-      if (!res.ok) throw new Error((await res.json()).error || "Upload failed.");
+      form.append("name", original.name);
+      await fetchJson(`/api/watches/${watchId}/documents`, { method: "POST", body: form, timeoutMs: 90_000 });
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed.");
+      setError(errorMessage(e, "Upload failed."));
     } finally {
       setBusy(false);
     }
@@ -62,7 +71,7 @@ export default function DocumentVault({ watchId, documents }: { watchId: string;
       <div className="flex min-w-0 flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <h3 className="break-words font-serif text-2xl leading-tight">Documents &amp; provenance</h3>
         <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <select value={kind} onChange={(e) => setKind(e.target.value)} className="input min-h-12 min-w-0 max-w-none sm:max-w-48">
+          <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Document type" className="input min-h-12 min-w-0 max-w-none sm:max-w-48">
             {KINDS.map((k) => (
               <option key={k.key} value={k.key}>{k.label}</option>
             ))}
@@ -75,7 +84,11 @@ export default function DocumentVault({ watchId, documents }: { watchId: string;
             type="file"
             accept="image/*,application/pdf"
             className="hidden"
-            onChange={(e) => upload(e.target.files)}
+            onChange={(e) => {
+              const picked = e.target.files?.[0];
+              e.target.value = ""; // so picking the same file again still works
+              void upload(picked);
+            }}
           />
         </div>
       </div>
@@ -89,15 +102,15 @@ export default function DocumentVault({ watchId, documents }: { watchId: string;
           {documents.map((d) => (
             <li key={d.id} className="flex min-w-0 flex-col items-start justify-between gap-2 py-3 min-[400px]:flex-row min-[400px]:items-center min-[400px]:gap-3">
               <div className="w-full min-w-0">
-                <a href={d.url} target="_blank" rel="noreferrer" className="block break-words leading-snug hover:text-accent [overflow-wrap:anywhere]">
+                <SignedLink url={d.url} className="block break-words leading-snug hover:text-accent [overflow-wrap:anywhere]">
                   {d.name}
-                </a>
+                </SignedLink>
                 <span className="mt-1 block text-sm text-muted">{KIND_LABEL[d.kind] ?? d.kind}</span>
               </div>
               <div className="flex w-full shrink-0 items-center gap-2 min-[400px]:w-auto">
-                <a href={d.url} target="_blank" rel="noreferrer" className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg px-3 text-sm text-accent hover:underline min-[400px]:flex-none">
+                <SignedLink url={d.url} ariaLabel={`Open ${d.name}`} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg px-3 text-sm text-accent hover:underline min-[400px]:flex-none">
                   Open
-                </a>
+                </SignedLink>
                 <button disabled={busy} onClick={() => remove(d.id)} className="min-h-11 flex-1 rounded-lg px-3 text-sm text-danger hover:underline min-[400px]:flex-none">
                   Delete
                 </button>

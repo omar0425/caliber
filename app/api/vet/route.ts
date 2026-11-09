@@ -7,12 +7,14 @@ import {
   enforceAiRateLimit,
   enforceContentLength,
   enforceContentType,
+  readFormDataBody,
   RequestError,
 } from "@/lib/security";
 import { VetResultSchema } from "@/lib/types";
 import { normalizeHttpSources } from "@/lib/aiSources";
 import { recordFailure } from "@/lib/errorLog";
 import { prisma } from "@/lib/prisma";
+import { deleteStoredFilesBestEffort } from "@/lib/uploadReferences";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -73,9 +75,9 @@ export async function POST(req: NextRequest) {
       preUploadedName = typeof body.name === "string" ? body.name : null;
       listingText = typeof body.listingText === "string" ? body.listingText.trim() : "";
     } else {
-      enforceContentLength(req, 11 * 1024 * 1024);
       enforceContentType(req, "multipart/form-data");
-      const form = await req.formData();
+      // Byte-checked: a body cut off by the proxy is refused (B4).
+      const form = await readFormDataBody(req, 11 * 1024 * 1024);
       const f = form.get("image");
       file = f instanceof File ? f : null;
       listingText = String(form.get("listingText") ?? "").trim();
@@ -156,5 +158,23 @@ export async function POST(req: NextRequest) {
       { error: err instanceof RequestError ? err.message : interpretAiError(err) },
       { status: err instanceof RequestError ? err.status : 500 }
     );
+  }
+}
+
+// DELETE /api/vet?id=… — remove one saved vet report (a mistaken check or a
+// listing the collector no longer cares about). The listing photo is removed
+// too unless a watch still uses it.
+export async function DELETE(req: NextRequest) {
+  try {
+    const id = new URL(req.url).searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "Which report? (missing id)" }, { status: 400 });
+    const report = await prisma.vetReport.findUnique({ where: { id }, select: { id: true, imageUrl: true } });
+    if (!report) return NextResponse.json({ error: "That report no longer exists." }, { status: 404 });
+    await prisma.vetReport.delete({ where: { id } });
+    if (report.imageUrl) await deleteStoredFilesBestEffort([report.imageUrl]);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    await recordFailure("api/vet:delete", err);
+    return NextResponse.json({ error: "Could not delete the report." }, { status: 500 });
   }
 }

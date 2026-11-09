@@ -38,6 +38,20 @@ describe("identification quality", () => {
     ).toEqual({ identifiedBrand: "Omega", observedBrand: "BREITLING" });
   });
 
+  it("accepts the same maker written differently (false refusals seen after a paid analysis)", () => {
+    expect(findBrandConflict("Harbor Clock & Watch Co.", "HARBOR CLOCK AND WATCH CO.")).toBeNull();
+    expect(
+      findBrandConflict("Lynx Press / QRS licensed comic merchandise", "©QRS/Lynx 1999")
+    ).toBeNull();
+    expect(findBrandConflict("Grand Seiko", "SEIKO")).toBeNull();
+  });
+
+  it("does not let generic words or years mask a contradiction", () => {
+    expect(findBrandConflict("Swiss Army Watch Co.", "OMEGA SWISS MADE")).not.toBeNull();
+    expect(findBrandConflict("New Balance", "NEW HAVEN")).not.toBeNull();
+    expect(findBrandConflict("Timex 2000", "CASIO 2000")).not.toBeNull();
+  });
+
   it("still refuses genuine watch-brand contradictions", () => {
     expect(findBrandConflict("Rolex", "SEIKO")).not.toBeNull();
     expect(findBrandConflict("Tudor", "INVICTA")).not.toBeNull();

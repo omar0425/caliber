@@ -1,15 +1,31 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("@/lib/password", () => ({
-  changeLoginPassword: vi.fn(
-    async (currentPassword: string, newPassword: string) =>
-      currentPassword === "current-password-123" &&
-      newPassword === "replacement-password-456"
+  // Returns the new session version on success, null for a wrong password.
+  changeLoginPassword: vi.fn(async (currentPassword: string, newPassword: string) =>
+    currentPassword === "current-password-123" && newPassword === "replacement-password-456"
+      ? "new-session-version"
+      : null
   ),
 }));
 
 import { POST } from "./route";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
+
+beforeEach(() => {
+  process.env.CALIBER_AUTH_SECRET = "deployment-password";
+});
+
+afterEach(() => {
+  delete process.env.CALIBER_AUTH_SECRET;
+});
+
+function sessionCookie(response: Response): string | null {
+  const header = response.headers.get("set-cookie");
+  const match = header?.match(new RegExp(`${SESSION_COOKIE}=([^;]+)`));
+  return match?.[1] ?? null;
+}
 
 const PUBLIC_ORIGIN = "https://caliber-production-606c.up.railway.app";
 const INTERNAL_ORIGIN = "https://localhost:8080";
@@ -39,6 +55,13 @@ describe("password route", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ changed: true });
+    // This device is re-issued a cookie under the new session version, so it
+    // stays signed in while every older cookie is revoked.
+    const cookie = sessionCookie(response);
+    expect(cookie).not.toBeNull();
+    expect(verifySessionToken(cookie, Date.now(), "new-session-version")).toBe(true);
+    expect(response.headers.get("set-cookie")).toContain("HttpOnly");
+    expect(response.headers.get("set-cookie")).toContain("Secure");
   });
 
   it("rejects a mismatched password confirmation", async () => {
@@ -56,6 +79,7 @@ describe("password route", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error: "The new passwords do not match." });
+    expect(sessionCookie(response)).toBeNull();
   });
 
   it("uses a safe POST redirect fallback for a native form submission", async () => {
@@ -76,6 +100,7 @@ describe("password route", () => {
     expect(response.headers.get("location")).toBe(
       `${PUBLIC_ORIGIN}/settings?password=changed#login-security`
     );
+    expect(verifySessionToken(sessionCookie(response), Date.now(), "new-session-version")).toBe(true);
   });
 
   it("returns a code-only redirect when the native form password is wrong", async () => {
@@ -96,5 +121,6 @@ describe("password route", () => {
     expect(response.headers.get("location")).toBe(
       `${PUBLIC_ORIGIN}/settings?passwordError=incorrect#login-security`
     );
+    expect(sessionCookie(response)).toBeNull();
   });
 });

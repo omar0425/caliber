@@ -10,23 +10,31 @@ import {
 import {
   enforceContentLength,
   enforceContentType,
+  readFormDataBody,
   RequestError,
 } from "@/lib/security";
 
 export const runtime = "nodejs";
+
+// The app uploads one photo per request (shrunk on the device first). The
+// limit must stay below next.config.ts proxyClientMaxBodySize (26 MB): a
+// larger body would be cut by the proxy. It was 51 MB, which the proxy could
+// never deliver whole.
+const MAX_PHOTOS_REQUEST_BYTES = 25 * 1024 * 1024;
 
 // POST /api/watches/[id]/photos — add one or more photos to a watch
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const savedUrls: string[] = [];
   let committed = false;
   try {
-    enforceContentLength(req, 51 * 1024 * 1024);
+    enforceContentLength(req, MAX_PHOTOS_REQUEST_BYTES);
     enforceContentType(req, "multipart/form-data");
     const { id } = await params;
     const watch = await prisma.watch.findUnique({ where: { id }, select: { id: true, imageUrl: true } });
     if (!watch) return NextResponse.json({ error: "Watch not found" }, { status: 404 });
 
-    const form = await req.formData();
+    // Byte-checked: a body cut off by the proxy is refused, never stored (B4).
+    const form = await readFormDataBody(req, MAX_PHOTOS_REQUEST_BYTES);
     const files = form.getAll("photos").filter((f): f is File => f instanceof File);
     const captionValue = String(form.get("caption") ?? "").trim();
     const caption = captionValue ? captionValue.slice(0, 500) : null;

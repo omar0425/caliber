@@ -2,39 +2,61 @@
 
 import { useCallback, useRef, useState } from "react";
 import { CameraIcon } from "./NavIcons";
+import { isImageFile, prepareImageForUpload } from "@/lib/imagePrep";
 
 export default function UploadZone({
   onFile,
   preview,
   hint = "Tap to choose a photo",
   disabled = false,
+  primary = "camera",
+  onError,
 }: {
   onFile: (file: File) => void;
+  // A photo that can't be prepared (e.g. HEIC on a browser that can't read
+  // it) is reported here instead of failing later on the server.
+  onError?: (message: string) => void;
   preview: string | null;
   hint?: string;
   disabled?: boolean;
+  // Which button leads: the camera for a watch in hand, the library for a
+  // listing screenshot. Once a photo is chosen neither competes with the
+  // screen's main action (Analyze / Vet).
+  primary?: "camera" | "library";
 }) {
   const libraryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
+  const [preparing, setPreparing] = useState(false);
 
+  // Shrink (and, where possible, convert) the photo on the device before it
+  // is handed on for upload — see lib/imagePrep.ts.
   const handleFiles = useCallback(
-    (files: FileList | null) => {
+    async (files: FileList | null) => {
       const file = files?.[0];
       // Some phone photo providers omit the MIME type. The server still
       // validates and decodes the actual bytes before any AI request.
-      if (!disabled && file && (!file.type || file.type.startsWith("image/"))) onFile(file);
+      if (disabled || preparing || !file || !(!file.type || isImageFile(file))) return;
+      setPreparing(true);
+      try {
+        onFile(await prepareImageForUpload(file));
+      } catch (error) {
+        onError?.(error instanceof Error ? error.message : "Couldn't read that photo. Try another one.");
+      } finally {
+        setPreparing(false);
+      }
     },
-    [disabled, onFile]
+    [disabled, preparing, onFile, onError]
   );
+  const blocked = disabled || preparing;
 
   return (
     <div className="space-y-3">
       <div
         onClick={() => {
-          if (!disabled) libraryRef.current?.click();
+          if (!blocked) libraryRef.current?.click();
         }}
-        aria-disabled={disabled}
+        aria-disabled={blocked}
         onDragOver={(e) => {
           e.preventDefault();
           setDrag(true);
@@ -43,10 +65,10 @@ export default function UploadZone({
         onDrop={(e) => {
           e.preventDefault();
           setDrag(false);
-          if (!disabled) handleFiles(e.dataTransfer.files);
+          if (!blocked) handleFiles(e.dataTransfer.files);
         }}
         className={`card card-hover overflow-hidden flex items-center justify-center text-center min-h-52 sm:min-h-64 ${
-          disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+          blocked ? "cursor-not-allowed opacity-70" : "cursor-pointer"
         } ${
           drag ? "border-accent" : ""
         }`}
@@ -59,7 +81,7 @@ export default function UploadZone({
             <div className="mx-auto mb-4 w-12 h-12 rounded-full border border-accent/60 flex items-center justify-center text-accent text-2xl">
               +
             </div>
-            <p className="text-ink text-lg font-semibold">{hint}</p>
+            <p className="text-ink text-lg font-semibold">{preparing ? "Preparing photo…" : hint}</p>
             <p className="text-muted mt-1">Clear, well-lit shots work best</p>
           </div>
         )}
@@ -70,18 +92,18 @@ export default function UploadZone({
         <button
           type="button"
           onClick={() => cameraRef.current?.click()}
-          disabled={disabled}
-          className="btn btn-gold w-full"
+          disabled={blocked}
+          className={`btn w-full ${!preview && primary === "camera" ? "btn-gold" : "btn-ghost"} ${primary === "library" ? "min-[400px]:order-2" : ""}`}
         >
-          <CameraIcon className="w-5 h-5" /> Take photo
+          <CameraIcon className="w-5 h-5" /> {preview ? "Retake" : "Take photo"}
         </button>
         <button
           type="button"
           onClick={() => libraryRef.current?.click()}
-          disabled={disabled}
-          className="btn btn-ghost w-full"
+          disabled={blocked}
+          className={`btn w-full ${!preview && primary === "library" ? "btn-gold" : "btn-ghost"} ${primary === "library" ? "order-first min-[400px]:order-1" : ""}`}
         >
-          Choose photo
+          {preview ? "Choose another" : "Choose photo"}
         </button>
       </div>
 
@@ -90,7 +112,7 @@ export default function UploadZone({
         ref={libraryRef}
         type="file"
         accept="image/*"
-        disabled={disabled}
+        disabled={blocked}
         className="hidden"
         onChange={(e) => {
           handleFiles(e.target.files);
@@ -103,7 +125,7 @@ export default function UploadZone({
         type="file"
         accept="image/*"
         capture="environment"
-        disabled={disabled}
+        disabled={blocked}
         className="hidden"
         onChange={(e) => {
           handleFiles(e.target.files);

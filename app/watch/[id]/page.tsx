@@ -28,13 +28,13 @@ export default async function WatchPage({
   if (!watch) notFound();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {print === "1" && <AutoPrint />}
-      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between no-print">
+      <div className="flex items-center justify-between gap-3 no-print">
         <Link href="/collection" className="inline-flex min-h-12 items-center font-medium text-muted hover:text-ink">
-          ← Back to collection
+          ← Collection
         </Link>
-        <PrintButton />
+        <PrintButton variant="subtle" />
       </div>
       <WatchDetailClient
         watch={{

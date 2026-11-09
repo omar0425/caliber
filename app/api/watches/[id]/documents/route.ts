@@ -4,24 +4,29 @@ import { deleteStoredFile, saveUploadedFile } from "@/lib/upload";
 import {
   enforceContentLength,
   enforceContentType,
+  readFormDataBody,
   RequestError,
 } from "@/lib/security";
 import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 
+// A 20 MB document plus the multipart envelope.
+const MAX_DOCUMENT_REQUEST_BYTES = 21 * 1024 * 1024;
+
 // POST /api/watches/[id]/documents — attach a provenance document
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   let savedUrl: string | null = null;
   let committed = false;
   try {
-    enforceContentLength(req, 21 * 1024 * 1024);
+    enforceContentLength(req, MAX_DOCUMENT_REQUEST_BYTES);
     enforceContentType(req, "multipart/form-data");
     const { id } = await params;
     const watch = await prisma.watch.findUnique({ where: { id }, select: { id: true } });
     if (!watch) return NextResponse.json({ error: "Watch not found" }, { status: 404 });
 
-    const form = await req.formData();
+    // Byte-checked: a body cut off by the proxy is refused, never stored (B4).
+    const form = await readFormDataBody(req, MAX_DOCUMENT_REQUEST_BYTES);
     const file = form.get("file");
     if (!(file instanceof File)) return NextResponse.json({ error: "No file uploaded." }, { status: 400 });
     const allowedKinds = new Set(["receipt", "warranty", "service", "certificate", "other"]);

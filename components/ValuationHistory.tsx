@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { errorMessage, fetchJson } from "@/lib/fetchJson";
 
 export type ValuationLite = { id: string; low: number; high: number; source: string | null; createdAt: string };
 
@@ -20,20 +21,18 @@ export default function ValuationHistory({ watchId, valuations }: { watchId: str
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`/api/watches/${watchId}/valuations`, {
+      await fetchJson(`/api/watches/${watchId}/valuations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ low, high: high || undefined, source: source || undefined }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to record valuation.");
       setAdding(false);
       setLow("");
       setHigh("");
       setSource("");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to record valuation.");
+      setError(errorMessage(e, "Failed to record valuation."));
     } finally {
       setSaving(false);
     }
@@ -51,13 +50,20 @@ export default function ValuationHistory({ watchId, valuations }: { watchId: str
       </div>
 
       {adding && (
-        <div className="no-print mb-4 min-w-0 space-y-3 rounded-xl border border-line/70 bg-surface-2/40 p-4">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (low.trim()) void save();
+          }}
+          className="no-print mb-4 min-w-0 space-y-3 rounded-xl border border-line/70 bg-surface-2/40 p-4"
+        >
           <div className="grid min-w-0 grid-cols-1 items-center gap-2 min-[400px]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
             <input
               value={low}
               onChange={(e) => setLow(e.target.value)}
               inputMode="decimal"
               placeholder="Low (USD)"
+              aria-label="Low value in US dollars"
               className="input min-h-12 min-w-0"
             />
             <span className="hidden text-muted min-[400px]:block">–</span>
@@ -66,6 +72,7 @@ export default function ValuationHistory({ watchId, valuations }: { watchId: str
               onChange={(e) => setHigh(e.target.value)}
               inputMode="decimal"
               placeholder="High (optional)"
+              aria-label="High value in US dollars (optional)"
               className="input min-h-12 min-w-0"
             />
           </div>
@@ -73,21 +80,22 @@ export default function ValuationHistory({ watchId, valuations }: { watchId: str
             value={source}
             onChange={(e) => setSource(e.target.value)}
             placeholder="Source (e.g. Chrono24, dealer quote)"
+            aria-label="Where this value came from"
             className="input min-h-12 min-w-0"
           />
           {error && <p className="break-words text-[15px] leading-relaxed text-danger [overflow-wrap:anywhere]">{error}</p>}
           <div className="flex flex-col gap-2 min-[400px]:flex-row">
-            <button onClick={save} disabled={saving || !low.trim()} className="btn btn-gold min-h-12 w-full max-w-full min-[400px]:w-auto">
+            <button type="submit" disabled={saving || !low.trim()} className="btn btn-gold min-h-12 w-full max-w-full min-[400px]:w-auto">
               {saving ? "Saving…" : "Record value"}
             </button>
-            <button onClick={() => { setAdding(false); setError(null); }} className="btn btn-ghost min-h-12 w-full max-w-full min-[400px]:w-auto">
+            <button type="button" onClick={() => { setAdding(false); setError(null); }} className="btn btn-ghost min-h-12 w-full max-w-full min-[400px]:w-auto">
               Cancel
             </button>
           </div>
           <p className="text-sm leading-relaxed text-muted">
             Free — no AI call. Sets the watch&apos;s current value and adds a point to the portfolio chart.
           </p>
-        </div>
+        </form>
       )}
 
       {valuations.length === 0 ? (

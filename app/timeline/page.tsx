@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { thumbnailUrl } from "@/lib/uploadUrl";
 import { prisma } from "@/lib/prisma";
 import { EmptyState, EmptyLinkAction } from "@/components/states";
 
@@ -39,8 +40,22 @@ function decadeLabel(decade: number): string {
   return `${decade}s`;
 }
 
-export default async function TimelinePage() {
+const FILTERS = [
+  { key: "all", label: "All" },
+  { key: "owned", label: "Owned" },
+  { key: "wishlist", label: "Wishlist" },
+  { key: "watching", label: "Watching" },
+];
+
+export default async function TimelinePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const { status: requested } = await searchParams;
+  const status = FILTERS.some((f) => f.key === requested) ? (requested as string) : "all";
   const watches: TimelineWatch[] = await prisma.watch.findMany({
+    where: status === "all" ? {} : { status },
     select: { id: true, brand: true, model: true, yearProduced: true, imageUrl: true, status: true },
   });
 
@@ -73,6 +88,39 @@ export default async function TimelinePage() {
       </div>
       <div className="rule" />
 
+      {/* Filter + jump-to-decade: the timeline is a very long single column on
+          a phone (hundreds of watches across a century). */}
+      <div className="no-print sticky top-[env(safe-area-inset-top,0px)] lg:top-[calc(5rem+env(safe-area-inset-top,0px))] z-20 -mx-4 space-y-2 border-b border-line/70 bg-base/95 px-4 py-2 backdrop-blur sm:mx-0 sm:px-0">
+        <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {FILTERS.map((f) => (
+            <Link
+              key={f.key}
+              href={f.key === "all" ? "/timeline" : `/timeline?status=${f.key}`}
+              aria-current={status === f.key ? "page" : undefined}
+              className={`flex min-h-11 shrink-0 items-center rounded-full border px-4 font-medium ${
+                status === f.key ? "border-accent bg-surface-2 text-accent" : "border-line text-muted hover:text-ink"
+              }`}
+            >
+              {f.label}
+            </Link>
+          ))}
+        </div>
+        {(decades.length > 1 || undated.length > 0) && (
+          <nav aria-label="Jump to decade" className="flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {decades.map((decade) => (
+              <a key={decade} href={`#d${decade}`} className="flex min-h-11 shrink-0 items-center rounded-lg px-2.5 text-[0.95rem] font-medium text-muted hover:text-ink">
+                {decadeLabel(decade)}
+              </a>
+            ))}
+            {undated.length > 0 && (
+              <a href="#undated" className="flex min-h-11 shrink-0 items-center rounded-lg px-2.5 text-[0.95rem] font-medium text-muted hover:text-ink">
+                Undated
+              </a>
+            )}
+          </nav>
+        )}
+      </div>
+
       {watches.length === 0 ? (
         <EmptyState
           title="No watches to travel through yet"
@@ -84,7 +132,7 @@ export default async function TimelinePage() {
           {decades.map((decade) => {
             const milestones = MILESTONES.filter((m) => Math.floor(m.year / 10) * 10 === decade);
             return (
-              <section key={decade} className="relative">
+              <section key={decade} id={`d${decade}`} className="relative scroll-mt-32 lg:scroll-mt-52">
                 <span className="absolute -left-[27px] sm:-left-[35px] top-1 w-3 h-3 rounded-full bg-accent" aria-hidden />
                 <h2 className="font-serif text-2xl text-accent-soft">{decadeLabel(decade)}</h2>
 
@@ -108,7 +156,7 @@ export default async function TimelinePage() {
                       <span className="w-16 h-16 rounded-lg bg-surface-2 border border-line/60 shrink-0 overflow-hidden flex items-center justify-center text-muted text-sm">
                         {watch.imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={watch.imageUrl} alt="" className="w-full h-full object-cover" />
+                          <img src={thumbnailUrl(watch.imageUrl, 320) ?? watch.imageUrl} width={64} height={64} loading="lazy" decoding="async" alt="" className="w-full h-full object-cover" />
                         ) : (
                           "No photo"
                         )}
@@ -128,7 +176,7 @@ export default async function TimelinePage() {
           })}
 
           {undated.length > 0 && (
-            <section className="relative">
+            <section id="undated" className="relative scroll-mt-32 lg:scroll-mt-52">
               <span className="absolute -left-[27px] sm:-left-[35px] top-1 w-3 h-3 rounded-full bg-line" aria-hidden />
               <h2 className="font-serif text-2xl text-muted">Undated</h2>
               <p className="text-sm text-muted mt-1">
@@ -145,7 +193,7 @@ export default async function TimelinePage() {
                     <span className="w-16 h-16 rounded-lg bg-surface-2 border border-line/60 shrink-0 overflow-hidden flex items-center justify-center text-muted text-sm">
                       {watch.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={watch.imageUrl} alt="" className="w-full h-full object-cover" />
+                        <img src={thumbnailUrl(watch.imageUrl, 320) ?? watch.imageUrl} width={64} height={64} loading="lazy" decoding="async" alt="" className="w-full h-full object-cover" />
                       ) : (
                         "No photo"
                       )}

@@ -7,28 +7,42 @@
 // different path. Every redeploy wiped the data, and `prisma db push` silently
 // recreated an empty database, so the app came up "healthy" with zero rows.
 //
-// This guard runs BEFORE backup + `prisma db push` and refuses to start when
-// the database would resolve onto throwaway storage — failing loudly beats
-// silently starting fresh on top of lost data.
+// This guard runs BEFORE auto-restore, backup and `prisma db push`, and refuses
+// to start when the database would resolve onto throwaway storage — failing
+// loudly beats silently starting fresh on top of lost data.
 //
 // Rules:
-//   • Always print the absolute path the database resolves to.
+//   • Always print where the database, backups and uploads resolve to.
 //   • On Railway (or when DB_STRICT=1): a relative `file:` path is a hard error.
-//   • If DB_VOLUME_DIR is set: the resolved path MUST live under it, else error.
+//   • If DB_VOLUME_DIR is set: the database, BACKUP_DIR and UPLOAD_DIR must ALL
+//     resolve under it, else hard error. (Anything outside the volume is
+//     destroyed on redeploy — photos and backups included.)
+//   • In production without DB_VOLUME_DIR: start as before, but warn loudly
+//     that the volume is not being asserted.
 //   • Non-SQLite URLs (e.g. Postgres) are left alone.
 
-import path from "path";
+import path from "node:path";
+import {
+  backupDir,
+  databaseUrlIsRelative,
+  isInside,
+  isProduction,
+  sqliteFilePath,
+  strictPaths,
+  uploadDir,
+} from "./lib/boot.mjs";
 
 function fail(lines) {
-  console.error("\n" + "=".repeat(68));
+  console.error("\n" + "=".repeat(72));
   console.error("[db] STARTUP BLOCKED — database is not on durable storage");
-  console.error("=".repeat(68));
+  console.error("=".repeat(72));
   for (const l of lines) console.error(l);
-  console.error("=".repeat(68) + "\n");
+  console.error("=".repeat(72) + "\n");
   process.exit(1);
 }
 
-const url = process.env.DATABASE_URL || "file:./dev.db";
+const env = process.env;
+const url = env.DATABASE_URL || "file:./dev.db";
 
 // Only SQLite file: URLs are subject to this check.
 if (!url.startsWith("file:")) {
@@ -36,24 +50,18 @@ if (!url.startsWith("file:")) {
   process.exit(0);
 }
 
-const raw = url.slice("file:".length);
-const isAbsolute = path.isAbsolute(raw);
-// Mirror how Prisma / scripts/backup.mjs resolve a relative SQLite path:
-// against the prisma/ directory, not the cwd.
-const resolved = isAbsolute ? raw : path.resolve(process.cwd(), "prisma", raw);
+const resolved = sqliteFilePath(env);
+const backups = backupDir(env);
+const uploads = uploadDir(env);
+const strict = strictPaths(env);
+const production = isProduction(env);
 
 console.log(`[db] DATABASE_URL=${url}`);
 console.log(`[db] SQLite database resolves to: ${resolved}`);
+console.log(`[db] Backups directory           : ${backups}`);
+console.log(`[db] Uploads directory           : ${uploads}`);
 
-// Are we on a platform with ephemeral container disk? Railway injects these.
-const onRailway =
-  !!process.env.RAILWAY_PROJECT_ID ||
-  !!process.env.RAILWAY_ENVIRONMENT_NAME ||
-  !!process.env.RAILWAY_SERVICE_ID ||
-  !!process.env.RAILWAY_ENVIRONMENT;
-const strict = process.env.DB_STRICT === "1" || onRailway;
-
-if (strict && !isAbsolute) {
+if (strict && databaseUrlIsRelative(env)) {
   fail([
     `DATABASE_URL is a RELATIVE path: ${url}`,
     `It resolves to ${resolved}, inside the app directory on the`,
@@ -63,39 +71,53 @@ if (strict && !isAbsolute) {
     `  DATABASE_URL = file:/app/data/caliber.db`,
     `  BACKUP_DIR   = /app/data/backups`,
     `  UPLOAD_DIR   = /app/data/uploads`,
-    `(and set DB_VOLUME_DIR=/app/data to assert the DB stays there).`,
+    `(and set DB_VOLUME_DIR=/app/data to assert all three stay there).`,
   ]);
 }
 
-const volumeDir = process.env.DB_VOLUME_DIR;
+const volumeDir = env.DB_VOLUME_DIR?.trim();
 if (volumeDir) {
-  const vol = path.resolve(volumeDir);
-  const rel = path.relative(vol, resolved);
-  const under = rel === "" ? false : !rel.startsWith("..") && !path.isAbsolute(rel);
-  if (!under) {
+  const problems = [];
+  if (!isInside(volumeDir, resolved)) {
+    problems.push(`  database   ${resolved}`);
+  }
+  if (!isInside(volumeDir, backups, { allowEqual: true })) {
+    problems.push(`  BACKUP_DIR ${backups}${env.BACKUP_DIR ? "" : "  (unset — defaults to the home directory)"}`);
+  }
+  if (!isInside(volumeDir, uploads, { allowEqual: true })) {
+    problems.push(`  UPLOAD_DIR ${uploads}${env.UPLOAD_DIR ? "" : "  (unset — defaults to ./uploads in the app directory)"}`);
+  }
+  if (problems.length > 0) {
     fail([
-      `The database is NOT under the expected volume directory.`,
-      `  DB_VOLUME_DIR (volume): ${vol}`,
-      `  database resolves to  : ${resolved}`,
+      `DB_VOLUME_DIR is ${volumeDir}, but these resolve OUTSIDE it:`,
+      ...problems,
       ``,
-      `On a redeploy, anything outside the volume is destroyed. Set`,
-      `DATABASE_URL to an absolute path under ${vol}, e.g.`,
-      `  file:${path.join(vol, "caliber.db")}`,
+      `On a redeploy, anything outside the volume is destroyed. Set each of`,
+      `them to an absolute path under ${volumeDir}, e.g.`,
+      `  DATABASE_URL = file:${volumeDir.replace(/\/+$/, "")}/caliber.db`,
+      `  BACKUP_DIR   = ${volumeDir.replace(/\/+$/, "")}/backups`,
+      `  UPLOAD_DIR   = ${volumeDir.replace(/\/+$/, "")}/uploads`,
     ]);
   }
-  console.log(`[db] OK — database is on the volume at ${vol}`);
+  console.log(`[db] OK — database, backups and uploads are all on the volume at ${volumeDir}`);
+} else if (production) {
+  console.warn("\n" + "!".repeat(72));
+  console.warn("[db] WARNING: DB_VOLUME_DIR is not set, so nothing is checking that the");
+  console.warn("[db] database, backups and uploads are on the persistent volume. A mistyped");
+  console.warn("[db] path would silently land on the container's ephemeral disk.");
+  console.warn("[db] Set DB_VOLUME_DIR to the volume mount (e.g. /app/data) to enforce it.");
+  console.warn("!".repeat(72) + "\n");
 }
 
 // Non-fatal hygiene warnings: backups/uploads should also be durable in prod.
 if (strict) {
-  const backupDir = process.env.BACKUP_DIR;
-  if (!backupDir) {
+  const rawBackupDir = env.BACKUP_DIR;
+  if (!rawBackupDir) {
     console.warn(`[db] WARNING: BACKUP_DIR is unset — automatic backups go to the ephemeral home dir and won't survive redeploys. Set it to a path on the volume (e.g. /app/data/backups).`);
-  } else if (!path.isAbsolute(backupDir)) {
-    console.warn(`[db] WARNING: BACKUP_DIR is relative (${backupDir}) — backups may not be durable. Use an absolute path on the volume.`);
+  } else if (!path.isAbsolute(rawBackupDir)) {
+    console.warn(`[db] WARNING: BACKUP_DIR is relative (${rawBackupDir}) — backups may not be durable. Use an absolute path on the volume.`);
   }
-  const uploadDir = process.env.UPLOAD_DIR;
-  if (!uploadDir) {
+  if (!env.UPLOAD_DIR) {
     console.warn(`[db] WARNING: UPLOAD_DIR is unset — uploaded photos/documents may not survive redeploys. Set it to a path on the volume (e.g. /app/data/uploads).`);
   }
 }

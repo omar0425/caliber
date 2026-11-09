@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { recordFailure } from "@/lib/errorLog";
+import { MONEY_HINT, parseMoney } from "@/lib/money";
 
 export const runtime = "nodejs";
 
@@ -12,12 +13,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     const body = (await req.json()) as { low?: unknown; high?: unknown; source?: unknown };
 
-    const low = Number(body.low);
-    const high = body.high === undefined || body.high === null || body.high === "" ? low : Number(body.high);
-    if (!Number.isFinite(low) || low < 0) {
-      return NextResponse.json({ error: "Enter a value (a number, or a low–high range)." }, { status: 400 });
+    const low = parseMoney(body.low);
+    const parsedHigh = parseMoney(body.high);
+    const high = parsedHigh === null ? low : parsedHigh;
+    if (low === null || Number.isNaN(low)) {
+      return NextResponse.json({ error: `Enter a value. ${MONEY_HINT}` }, { status: 400 });
     }
-    if (!Number.isFinite(high) || high < low) {
+    if (high === null || Number.isNaN(high) || high < low) {
       return NextResponse.json({ error: "High value must be at least the low value." }, { status: 400 });
     }
 

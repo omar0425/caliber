@@ -1,6 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import AiMessage from "./AiMessage";
+import { errorMessage, fetchJson } from "@/lib/fetchJson";
 
 type Msg = { role: "user" | "assistant"; content: string; sources?: string[] };
 
@@ -17,6 +19,30 @@ export default function WatchChat({ watchId, watchName }: { watchId: string; wat
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const storageKey = `caliber:chat:${watchId}`;
+
+  // Keep the conversation for this watch while the app is open — leaving the
+  // page to check a photo used to throw the whole thread (and its cost) away.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        const saved = JSON.parse(window.sessionStorage.getItem(storageKey) ?? "null") as Msg[] | null;
+        if (Array.isArray(saved)) setMessages(saved.slice(-40));
+      } catch {
+        /* ignore a corrupt saved thread */
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+    try {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(messages.slice(-40)));
+    } catch {
+      /* storage full — the thread just won't survive navigation */
+    }
+  }, [messages, storageKey]);
 
   async function send(text: string) {
     const content = text.trim();
@@ -27,8 +53,9 @@ export default function WatchChat({ watchId, watchName }: { watchId: string; wat
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/watches/${watchId}/chat`, {
+      const data = await fetchJson<{ reply: string; sources?: unknown }>(`/api/watches/${watchId}/chat`, {
         method: "POST",
+        timeoutMs: 120_000,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: next.map(({ role, content: messageContent }) => ({
@@ -37,19 +64,22 @@ export default function WatchChat({ watchId, watchName }: { watchId: string; wat
           })),
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Chat failed.");
       setMessages((m) => [
         ...m,
         {
           role: "assistant",
           content: data.reply,
-          sources: Array.isArray(data.sources) ? data.sources : [],
+          sources: Array.isArray(data.sources) ? (data.sources as string[]) : [],
         },
       ]);
-      requestAnimationFrame(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }));
+      requestAnimationFrame(() => {
+        const box = scrollRef.current;
+        if (!box) return;
+        if (box.scrollHeight > box.clientHeight) box.scrollTo({ top: box.scrollHeight });
+        else box.lastElementChild?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Chat failed.");
+      setError(errorMessage(e, "Chat failed."));
     } finally {
       setLoading(false);
     }
@@ -65,7 +95,9 @@ export default function WatchChat({ watchId, watchName }: { watchId: string; wat
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="min-w-0 space-y-3 overflow-y-auto max-h-96">
+      {/* One scrolling surface on phones: the page. A nested scroll box inside
+          a scrolling page fought the thumb; from sm up it stays a panel. */}
+      <div ref={scrollRef} aria-live="polite" className="min-w-0 space-y-3 sm:max-h-96 sm:overflow-y-auto">
         {messages.length === 0 && (
           <div className="flex flex-wrap gap-2">
             {SUGGESTIONS.map((s) => (
@@ -88,7 +120,7 @@ export default function WatchChat({ watchId, watchName }: { watchId: string; wat
                   : "bg-surface-2 border border-line/60 rounded-bl-sm"
               }`}
             >
-              {m.content}
+              {m.role === "assistant" ? <AiMessage text={m.content} /> : m.content}
               {m.role === "assistant" && m.sources && m.sources.length > 0 && (
                 <div className="mt-3 pt-2 border-t border-line/60 space-y-1">
                   <p className="text-sm uppercase tracking-wide text-muted">Sources</p>
@@ -127,12 +159,15 @@ export default function WatchChat({ watchId, watchName }: { watchId: string; wat
         }}
         className="flex min-w-0 flex-col gap-2 min-[400px]:flex-row"
       >
+        {/* Stays enabled while an answer loads: disabling it dismissed the
+            iOS keyboard after every question. Send is what waits. */}
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask anything about this watch…"
+          aria-label="Ask about this watch"
+          enterKeyHint="send"
           className="input min-h-12 min-w-0"
-          disabled={loading}
         />
         <button type="submit" disabled={loading || !input.trim()} className="btn btn-gold min-h-12 w-full max-w-full min-[400px]:w-auto">
           Send

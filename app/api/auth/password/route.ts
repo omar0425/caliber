@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { changeLoginPassword } from "@/lib/password";
+import { setSessionCookie } from "@/lib/sessionCookie";
 import { hasValidFormOrigin, publicRequestOrigin } from "@/lib/requestOrigin";
 import {
   enforceContentLength,
@@ -109,7 +110,8 @@ export async function POST(req: NextRequest) {
         400
       );
     }
-    if (!(await changeLoginPassword(currentPassword, newPassword))) {
+    const sessionVersion = await changeLoginPassword(currentPassword, newPassword);
+    if (!sessionVersion) {
       return respond(
         req,
         formSubmission,
@@ -119,7 +121,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Every other session was just revoked; keep this device signed in by
+    // re-issuing its cookie under the new session version.
     const response = respond(req, formSubmission, "changed", null);
+    setSessionCookie(response, req, sessionVersion);
     response.headers.set("Cache-Control", "no-store");
     return response;
   } catch (error) {

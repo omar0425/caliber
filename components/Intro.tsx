@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// Concept A — "The Caliber Winds Up". First-launch cold open: an escapement
+// Concept A — "The Caliber Winds Up". Launch cold open: an escapement
 // wheel catches gold light and beats, the camera pulls back through the gear
 // train, the movement resolves into a dial, the hands sweep backwards and
 // settle on the real current time, and CALIBER sets where a maker's name sits.
@@ -11,8 +11,8 @@ import { useEffect, useRef, useState } from "react";
 // the overlay fades into the app.
 //
 // Pure CSS + inline SVG: zero network calls, zero AI calls, no dependencies.
-// ~8.4s, skippable at any frame (Skip button is focusable on frame one, Esc
-// also works). Never rendered at all under prefers-reduced-motion — the gate
+// ~8.4s, skippable at any frame: tap anywhere, the Skip button (focusable on
+// frame one), or Esc. Never rendered at all under prefers-reduced-motion — the gate
 // upstream guarantees that; the stylesheet's reduced-motion clamp is the
 // second line of defense.
 //
@@ -56,7 +56,8 @@ export default function Intro({ onDone }: { onDone: () => void }) {
     <div
       role="dialog"
       aria-label="Caliber — every watch is a time machine"
-      className={`fixed inset-0 z-[70] flex items-center justify-center bg-base transition-opacity duration-[600ms] ${
+      onClick={finish}
+      className={`no-print fixed inset-0 z-[70] flex items-center justify-center bg-base transition-opacity duration-[600ms] ${
         leaving ? "opacity-0" : "opacity-100"
       }`}
       style={{
@@ -141,7 +142,7 @@ export default function Intro({ onDone }: { onDone: () => void }) {
       <button
         onClick={finish}
         autoFocus
-        className="btn btn-ghost btn-sm absolute"
+        className="btn btn-ghost absolute"
         style={{
           right: "max(1rem, env(safe-area-inset-right, 0px))",
           bottom: "max(1rem, env(safe-area-inset-bottom, 0px))",

@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
 import { signedUploadPath, verifySignedUploadRequest, SIGNED_UPLOAD_TTL_SECONDS } from "./signedUrl";
 
@@ -14,6 +15,7 @@ function parts(path: string) {
 
 afterEach(() => {
   delete process.env.CALIBER_AUTH_SECRET;
+  delete process.env.CALIBER_SESSION_SECRET;
 });
 
 describe("signed upload URLs", () => {
@@ -44,17 +46,51 @@ describe("signed upload URLs", () => {
     expect(verifySignedUploadRequest(name, exp, sig, afterExpiry)).toBe(false);
   });
 
-  it("never signs non-image or malformed names", () => {
+  it("never signs unknown types or malformed names", () => {
     process.env.CALIBER_AUTH_SECRET = "long-secret";
-    expect(signedUploadPath(`${"ab".repeat(32)}.pdf`)).toBeNull();
+    expect(signedUploadPath(`${"ab".repeat(32)}.exe`)).toBeNull();
+    expect(signedUploadPath(`${"ab".repeat(32)}.svg`)).toBeNull();
     expect(signedUploadPath("../../etc/passwd")).toBeNull();
     expect(signedUploadPath("short.jpg")).toBeNull();
+  });
+
+  it("signs stored PDF documents so they open from the installed app", () => {
+    process.env.CALIBER_AUTH_SECRET = "long-secret";
+    expect(signedUploadPath(`${"ab".repeat(10)}.pdf`)).toMatch(/^\/api\/uploads\/[a-f0-9]{20}\.pdf\?exp=\d+&sig=/);
   });
 
   it("keys signatures to the secret", () => {
     process.env.CALIBER_AUTH_SECRET = "secret-one";
     const { name, exp, sig } = parts(signedUploadPath(NAME)!);
     process.env.CALIBER_AUTH_SECRET = "secret-two";
+    expect(verifySignedUploadRequest(name, exp, sig)).toBe(false);
+  });
+});
+
+describe("signed upload URLs and CALIBER_SESSION_SECRET", () => {
+  const SESSION_SECRET = "a-long-random-session-signing-key-0123456789";
+  const expectedSig = (secret: string, name: string, exp: string) =>
+    crypto.createHmac("sha256", `${secret}::upload-signing-v1`).update(`${name}.${exp}`).digest("base64url");
+
+  it("falls back to CALIBER_AUTH_SECRET when the session secret is unset", () => {
+    process.env.CALIBER_AUTH_SECRET = "long-secret";
+    const { name, exp, sig } = parts(signedUploadPath(NAME)!);
+    expect(sig).toBe(expectedSig("long-secret", name, exp!));
+    expect(verifySignedUploadRequest(name, exp, sig)).toBe(true);
+  });
+
+  it("signs with the session secret when it is set", () => {
+    process.env.CALIBER_AUTH_SECRET = "long-secret";
+    process.env.CALIBER_SESSION_SECRET = SESSION_SECRET;
+    const { name, exp, sig } = parts(signedUploadPath(NAME)!);
+    expect(sig).toBe(expectedSig(SESSION_SECRET, name, exp!));
+    expect(verifySignedUploadRequest(name, exp, sig)).toBe(true);
+  });
+
+  it("rejects a URL signed with the password once the session secret is introduced", () => {
+    process.env.CALIBER_AUTH_SECRET = "long-secret";
+    const { name, exp, sig } = parts(signedUploadPath(NAME)!);
+    process.env.CALIBER_SESSION_SECRET = SESSION_SECRET;
     expect(verifySignedUploadRequest(name, exp, sig)).toBe(false);
   });
 });

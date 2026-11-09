@@ -3,6 +3,8 @@
 // A small print button that overlays a watch card. Opens that single watch's
 // page in print mode (?print=1) in a new tab, which auto-triggers the print
 // dialog — so it prints only that one watch, never the whole collection.
+// Hidden on touch screens: there it either covered every photo or, on
+// tablets, sat invisible but tappable. Phones print from the watch page.
 export default function CardPrintButton({ watchId, label }: { watchId: string; label: string }) {
   return (
     <button
@@ -13,9 +15,12 @@ export default function CardPrintButton({ watchId, label }: { watchId: string; l
         // The card is a link; don't navigate to the detail page on click.
         e.preventDefault();
         e.stopPropagation();
-        window.open(`/watch/${watchId}?print=1`, "_blank", "noopener");
+        const url = `/watch/${watchId}?print=1`;
+        // The installed app can't come back from a new window — print in place.
+        if (window.matchMedia("(display-mode: standalone)").matches) window.location.assign(url);
+        else window.open(url, "_blank", "noopener");
       }}
-      className="absolute top-2 right-2 z-10 flex h-11 w-11 items-center justify-center rounded-lg border border-line bg-base/70 text-muted backdrop-blur transition-[color,border-color,opacity] hover:border-accent hover:text-accent sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+      className="absolute top-2 right-2 z-10 flex h-11 w-11 items-center justify-center rounded-lg border border-line bg-base/70 text-muted backdrop-blur transition-[color,border-color,opacity] hover:border-accent hover:text-accent [@media(hover:none)]:hidden [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:opacity-100"
     >
       {/* printer icon */}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

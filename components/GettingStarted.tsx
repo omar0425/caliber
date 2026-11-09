@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+// Remembered on this device: "Hide" used to last only until the next visit,
+// and "Keep a backup" could never be ticked off.
+const HIDDEN_KEY = "caliber_getting_started_hidden_v1";
+export const LAST_BACKUP_KEY = "caliber_last_backup_at";
 
 type Item = { done: boolean; title: string; desc: string; href: string; cta: string };
 
@@ -12,9 +17,31 @@ export default function GettingStarted({
   keyConfigured: boolean;
   hasWatch: boolean;
 }) {
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(true); // until storage is read — no flash
+  const [backedUp, setBackedUp] = useState(false);
 
-  // Hide once everything's done, or if the user dismissed it this session.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        setDismissed(window.localStorage.getItem(HIDDEN_KEY) === "1");
+        setBackedUp(Boolean(window.localStorage.getItem(LAST_BACKUP_KEY)));
+      } catch {
+        setDismissed(false);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  function hide() {
+    setDismissed(true);
+    try {
+      window.localStorage.setItem(HIDDEN_KEY, "1");
+    } catch {
+      /* hidden for this visit only */
+    }
+  }
+
+  // Hide once everything's done, or once the collector dismissed it.
   if (dismissed) return null;
 
   const items: Item[] = [
@@ -33,7 +60,7 @@ export default function GettingStarted({
       cta: "Identify a watch",
     },
     {
-      done: false,
+      done: backedUp,
       title: "Keep a backup",
       desc: "Export your collection any time from Settings so it's always safe.",
       href: "/settings",
@@ -41,14 +68,14 @@ export default function GettingStarted({
     },
   ];
 
-  const allDone = keyConfigured && hasWatch;
+  const allDone = keyConfigured && hasWatch && backedUp;
   if (allDone) return null;
 
   return (
     <section className="card p-4 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h2 className="font-serif text-2xl">Getting started</h2>
-        <button onClick={() => setDismissed(true)} className="min-h-11 px-2 text-muted hover:text-ink">
+        <button onClick={hide} className="min-h-11 px-2 text-muted hover:text-ink">
           Hide
         </button>
       </div>

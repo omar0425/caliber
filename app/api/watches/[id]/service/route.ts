@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { MONEY_HINT, parseMoney } from "@/lib/money";
+import { parseDateOnly } from "@/lib/dates";
 import {
   enforceContentLength,
   enforceContentType,
@@ -26,13 +28,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     };
     if (!body.date) return NextResponse.json({ error: "Service date is required." }, { status: 400 });
 
-    const date = new Date(body.date);
-    if (Number.isNaN(date.getTime())) {
+    const date = parseDateOnly(body.date);
+    if (!date) {
       return NextResponse.json({ error: "Enter a valid service date." }, { status: 400 });
     }
-    const cost = body.cost === "" || body.cost === undefined ? null : Number(body.cost);
-    if (cost !== null && (!Number.isFinite(cost) || cost < 0)) {
-      return NextResponse.json({ error: "Enter a valid non-negative service cost." }, { status: 400 });
+    const cost = parseMoney(body.cost);
+    if (Number.isNaN(cost)) {
+      return NextResponse.json({ error: `Service cost: ${MONEY_HINT}` }, { status: 400 });
     }
 
     const record = await prisma.serviceRecord.create({

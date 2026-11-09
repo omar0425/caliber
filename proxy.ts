@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  authenticationConfigured,
-  sanitizeReturnTo,
-  SESSION_COOKIE,
-  verifySessionToken,
-} from "./lib/auth";
+import { authenticationConfigured, sanitizeReturnTo, SESSION_COOKIE } from "./lib/auth";
+import { isAuthenticatedSession } from "./lib/sessionVersion";
 import { verifySignedUploadRequest } from "./lib/signedUrl";
 
 const PUBLIC_PATHS = new Set([
@@ -14,7 +10,7 @@ const PUBLIC_PATHS = new Set([
   "/login",
 ]);
 
-export function proxy(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   if (req.nextUrl.pathname === "/api/health") return NextResponse.next();
 
   if (!authenticationConfigured()) {
@@ -22,7 +18,8 @@ export function proxy(req: NextRequest) {
     return new NextResponse("CALIBER_AUTH_SECRET is required.", { status: 503 });
   }
 
-  const sessionAuthenticated = verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
+  // Signature + expiry + session version (revoked by a password change).
+  const sessionAuthenticated = await isAuthenticatedSession(req.cookies.get(SESSION_COOKIE)?.value);
 
   if (req.nextUrl.pathname === "/login" && sessionAuthenticated) {
     return NextResponse.redirect(new URL("/", req.url));
@@ -30,11 +27,13 @@ export function proxy(req: NextRequest) {
   if (PUBLIC_PATHS.has(req.nextUrl.pathname)) return NextResponse.next();
   if (sessionAuthenticated) return NextResponse.next();
 
-  // Signed image URLs: time-limited, read-only access to a single uploaded
-  // image so external fetchers (the Google Lens pre-check) can read the photo
-  // without a session. The signature covers the exact filename and expiry.
+  // Signed upload URLs: time-limited, read-only access to a single uploaded
+  // file so external fetchers (the Google Lens pre-check) — and documents
+  // opened from the installed iPhone app, whose viewer doesn't share the
+  // app's cookies — can read it without a session. The signature covers the
+  // exact filename and expiry.
   const signedUpload = req.nextUrl.pathname.match(
-    /^\/api\/uploads\/([a-f0-9]{16,}\.(?:jpg|png|webp|gif))$/
+    /^\/api\/uploads\/([a-f0-9]{16,}\.(?:jpg|png|webp|gif|pdf))$/
   );
   if (
     signedUpload &&

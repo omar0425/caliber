@@ -12,6 +12,7 @@ import {
   enforceAiRateLimit,
   enforceContentLength,
   enforceContentType,
+  readFormDataBody,
   RequestError,
 } from "@/lib/security";
 import { WatchSpecSchema } from "@/lib/types";
@@ -49,9 +50,9 @@ export async function POST(req: NextRequest) {
       const stored = await loadPreUploadedImage(body.name);
       source = { ...stored, persist: null };
     } else {
-      enforceContentLength(req, 11 * 1024 * 1024);
       enforceContentType(req, "multipart/form-data");
-      const form = await req.formData();
+      // Byte-checked: a body cut off by the proxy is refused (B4).
+      const form = await readFormDataBody(req, 11 * 1024 * 1024);
       const file = form.get("image");
       if (!(file instanceof File)) {
         return NextResponse.json({ error: "No image uploaded." }, { status: 400 });

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Logo from "@/components/Logo";
 import { sanitizeReturnTo } from "@/lib/auth";
+import { loginErrorMessage } from "@/lib/loginMessages";
 
 export const metadata: Metadata = {
   title: "Sign in — Caliber",
@@ -10,18 +11,11 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; next?: string }>;
+  searchParams: Promise<{ error?: string; next?: string; retry?: string }>;
 }) {
   const params = await searchParams;
   const returnTo = sanitizeReturnTo(params.next);
-  const error =
-    params.error === "rate"
-      ? "Too many unsuccessful attempts. Wait 15 minutes, then try again."
-      : params.error === "invalid"
-        ? "That username or password didn’t match."
-        : params.error === "logout"
-          ? "Sign-out could not be verified. Please try again."
-          : null;
+  const error = loginErrorMessage(params.error, params.retry);
 
   return (
     <div className="min-h-dvh grid lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] bg-base">

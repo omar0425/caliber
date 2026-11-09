@@ -3,6 +3,7 @@ import path from "path";
 import crypto from "crypto";
 import sharp from "sharp";
 import { RequestError } from "./security";
+import { THUMB_WIDTHS, type ThumbWidth } from "./uploadUrl";
 
 // Where uploaded files are stored. In production (e.g. Railway) point UPLOAD_DIR
 // at a persistent volume so files survive redeploys. Files are served back
@@ -187,14 +188,81 @@ export type SavedFile = {
   originalName: string;
 };
 
+const RESTORE_NAME = /^[a-f0-9]{16,}\.(jpg|png|webp|gif|pdf)$/;
+const TYPE_BY_EXT: Record<string, string> = {
+  jpg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  pdf: "application/pdf",
+};
+
+// Puts one file from a full-backup ZIP back into UPLOAD_DIR under its original
+// name (the restored records point at that exact name). Never overwrites: a
+// file already on the server is kept as-is. The bytes must really be the type
+// the name says.
+export async function restoreStoredFile(name: string, bytes: Buffer): Promise<"restored" | "exists"> {
+  const match = RESTORE_NAME.exec(name);
+  if (!match) throw new RequestError("Not a Caliber photo or document name.", 400);
+  if (!matchesSignature(bytes, TYPE_BY_EXT[match[1]])) {
+    throw new RequestError("That file's contents don't match its type.", 400);
+  }
+  const target = path.join(UPLOAD_DIR, name);
+  try {
+    await fs.access(target);
+    return "exists";
+  } catch {
+    /* not there yet — restore it */
+  }
+  await fs.mkdir(UPLOAD_DIR, { recursive: true });
+  const temporary = `${target}.restoring-${crypto.randomBytes(4).toString("hex")}`;
+  await fs.writeFile(temporary, bytes);
+  await fs.rename(temporary, target);
+  return "restored";
+}
+
 export async function deleteStoredFile(publicUrl: string | null | undefined): Promise<void> {
   const match = publicUrl?.match(/^\/api\/uploads\/([a-f0-9]{16,}\.(?:jpg|png|webp|gif|pdf))$/);
   if (!match) return;
+  const targets = [path.join(UPLOAD_DIR, match[1]), ...THUMB_WIDTHS.map((width) => thumbnailPath(match[1], width))];
+  for (const target of targets) {
+    try {
+      await fs.unlink(target);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+}
+
+// Thumbnails live in UPLOAD_DIR/thumbs (on the persistent volume in
+// production) and are generated the first time a size is requested, so
+// existing photos need no migration.
+const THUMB_DIR = path.join(UPLOAD_DIR, "thumbs");
+
+function thumbnailPath(name: string, width: ThumbWidth): string {
+  return path.join(THUMB_DIR, `${name.replace(/\.[a-z]+$/, "")}-w${width}.jpg`);
+}
+
+export async function readThumbnail(name: string, width: ThumbWidth): Promise<Buffer> {
+  const target = thumbnailPath(name, width);
   try {
-    await fs.unlink(path.join(UPLOAD_DIR, match[1]));
+    return await fs.readFile(target);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
+  const original = await fs.readFile(path.join(UPLOAD_DIR, name));
+  const thumbnail = await sharp(original)
+    .rotate()
+    .resize(width, width, { fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 78, mozjpeg: true })
+    .toBuffer();
+  try {
+    await fs.mkdir(THUMB_DIR, { recursive: true });
+    await fs.writeFile(target, thumbnail);
+  } catch {
+    // Caching the thumbnail is an optimization; serving it is what matters.
+  }
+  return thumbnail;
 }
 
 export async function loadStoredImage(

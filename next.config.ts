@@ -7,6 +7,15 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
+  experimental: {
+    // proxy.ts makes Next buffer every request body, and past this size it
+    // silently hands the route only the first part (default 10 MB). It must
+    // stay ABOVE the largest body any route accepts (backup import 25 MB,
+    // restore-file 21 MB, documents 21 MB, photos 25 MB) so a real file is
+    // never cut. The routes also byte-check their bodies (lib/security.ts
+    // readBodyBytes) so anything that does get cut is rejected, not stored.
+    proxyClientMaxBodySize: "26mb",
+  },
   async headers() {
     return [
       {

@@ -4,6 +4,7 @@ import WatchCard from "@/components/WatchCard";
 import GettingStarted from "@/components/GettingStarted";
 import { nextServiceDue, serviceStatus } from "@/lib/service";
 import { getKeySource } from "@/lib/settings";
+import { formatDateOnly } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +14,21 @@ function money(n: number) {
 
 export default async function Dashboard() {
   const [watches, owned] = await Promise.all([
-    prisma.watch.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
-    prisma.watch.findMany({ where: { status: "owned" } }),
+    prisma.watch.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: {
+        id: true, brand: true, model: true, referenceNumber: true, nickname: true,
+        imageUrl: true, status: true, estValueLow: true, estValueHigh: true,
+      },
+    }),
+    prisma.watch.findMany({
+      where: { status: "owned" },
+      select: {
+        id: true, brand: true, model: true, estValueLow: true, estValueHigh: true,
+        lastServicedDate: true, purchaseDate: true, serviceIntervalYears: true,
+      },
+    }),
   ]);
 
   const totalCount = await prisma.watch.count();
@@ -35,7 +49,23 @@ export default async function Dashboard() {
 
   return (
     <div className="space-y-8 sm:space-y-10">
-      {/* Hero */}
+      {/* A returning collector gets their collection, not the pitch: the
+          marketing hero filled the whole first phone screen on every visit. */}
+      {totalCount > 0 ? (
+        <section className="space-y-4">
+          <div>
+            <h1 className="font-serif text-3xl sm:text-4xl">Your collection</h1>
+            <p className="mt-1 text-muted">
+              {totalCount} watch{totalCount === 1 ? "" : "es"} · {owned.length} owned
+              {ownedValue ? ` · ${money(ownedValue)} est.` : ""}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:flex">
+            <Link href="/identify" className="btn btn-gold w-full sm:w-auto">Identify a watch</Link>
+            <Link href="/vet" className="btn btn-ghost w-full sm:w-auto">Vet a purchase</Link>
+          </div>
+        </section>
+      ) : (
       <section className="card p-5 min-[400px]:p-6 sm:p-10 relative overflow-hidden">
         <div className="relative z-10 max-w-2xl">
           <p className="label mb-3">Watch intelligence for collectors</p>
@@ -52,21 +82,22 @@ export default async function Dashboard() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Onboarding checklist */}
       <GettingStarted keyConfigured={keyConfigured} hasWatch={totalCount > 0} />
 
       {/* Stats */}
-      <section className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: "Watches", value: totalCount.toString() },
           { label: "In collection", value: owned.length.toString() },
           { label: "Est. collection value", value: ownedValue ? money(ownedValue) : "—" },
           { label: "Brands", value: brands.toString() },
         ].map((s) => (
-          <div key={s.label} className="card p-4 sm:p-5">
-            <p className="text-[0.95rem] font-semibold text-muted leading-snug">{s.label}</p>
-            <p className="font-serif text-2xl mt-2 text-accent-soft">{s.value}</p>
+          <div key={s.label} className="card p-3 min-[400px]:p-4 sm:p-5 min-w-0">
+            <p className="text-sm font-semibold text-muted leading-snug">{s.label}</p>
+            <p className="font-serif text-xl min-[400px]:text-2xl mt-1.5 text-accent-soft break-words">{s.value}</p>
           </div>
         ))}
       </section>
@@ -85,7 +116,7 @@ export default async function Dashboard() {
                   <span className="text-accent-soft">{watch.brand}</span> {watch.model}
                 </Link>
                 <span className="shrink-0" style={{ color: status === "overdue" ? "var(--color-danger)" : "var(--color-warn)" }}>
-                  {status === "overdue" ? "Service overdue" : "Service due"} · {due?.toLocaleDateString()}
+                  {status === "overdue" ? "Service overdue" : "Service due"} · {formatDateOnly(due)}
                 </span>
               </li>
             ))}
@@ -101,7 +132,7 @@ export default async function Dashboard() {
             View collection →
           </Link>
         </div>
-        <div className="rule mb-6" />
+        <div className="rule mb-4" />
         {watches.length === 0 ? (
           <div className="card p-6 sm:p-10 text-center">
             <p className="text-muted">Your collection is empty.</p>
@@ -110,9 +141,13 @@ export default async function Dashboard() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {watches.map((w) => (
-              <WatchCard key={w.id} watch={w} />
+          // A sideways strip on phones (8 full-width cards were ~5,000px of
+          // scrolling); a grid from md up.
+          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
+            {watches.map((w, i) => (
+              <div key={w.id} className="w-[44vw] max-w-52 shrink-0 snap-start md:w-auto md:max-w-none">
+                <WatchCard watch={w} eager={i < 2} compact />
+              </div>
             ))}
           </div>
         )}

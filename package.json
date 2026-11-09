@@ -7,9 +7,9 @@
   },
   "scripts": {
     "postinstall": "prisma generate",
-    "dev": "node scripts/check-db-path.mjs && node scripts/auto-restore.mjs && node scripts/backup.mjs && node scripts/cleanup-uploads.mjs && next dev",
+    "dev": "node scripts/check-db-path.mjs && node scripts/auto-restore.mjs && node scripts/backup.mjs --boot --best-effort && node scripts/cleanup-uploads.mjs --on-start && next dev",
     "build": "prisma generate && next build",
-    "start": "node scripts/check-db-path.mjs && node scripts/auto-restore.mjs && node scripts/backup.mjs && prisma db push --skip-generate && node scripts/cleanup-uploads.mjs && next start",
+    "start": "node scripts/check-db-path.mjs && node scripts/auto-restore.mjs && node scripts/backup.mjs --boot && prisma db push --skip-generate && node scripts/cleanup-uploads.mjs --on-start && next start",
     "db:push": "node scripts/check-db-path.mjs && node scripts/auto-restore.mjs && node scripts/backup.mjs && prisma db push",
     "backup": "node scripts/backup.mjs",
     "restore": "node scripts/restore.mjs",
@@ -24,12 +24,12 @@
     "@emnapi/core": "^1.11.3",
     "@emnapi/runtime": "^1.11.3",
     "@prisma/client": "^6.19.3",
-    "next": "^16.2.12",
+    "next": "^16.4.2",
     "openai": "^6.49.0",
     "prisma": "^6.19.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -37,15 +37,14 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^4.1.12",
     "eslint": "^9",
-    "eslint-config-next": "^16.2.12",
+    "eslint-config-next": "^16.4.2",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12"
   },
   "overrides": {
-    "postcss": "8.5.18",
     "sharp": "$sharp"
   }
 }

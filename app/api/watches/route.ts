@@ -11,27 +11,55 @@ import { recordFailure } from "@/lib/errorLog";
 
 export const runtime = "nodejs";
 
+const CARD_FIELDS = {
+  id: true,
+  brand: true,
+  model: true,
+  referenceNumber: true,
+  nickname: true,
+  imageUrl: true,
+  status: true,
+  estValueLow: true,
+  estValueHigh: true,
+} satisfies Prisma.WatchSelect;
+
 // GET /api/watches?status=owned&q=submariner
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const q = searchParams.get("q")?.trim();
 
-  const where: Prisma.WatchWhereInput = {};
-  if (status && status !== "all") where.status = status;
-  if (q) {
-    where.OR = [
-      { brand: { contains: q } },
-      { model: { contains: q } },
-      { referenceNumber: { contains: q } },
-      { nickname: { contains: q } },
-    ];
+  const searchWhere: Prisma.WatchWhereInput = q
+    ? {
+        OR: [
+          { brand: { contains: q } },
+          { model: { contains: q } },
+          { referenceNumber: { contains: q } },
+          { nickname: { contains: q } },
+        ],
+      }
+    : {};
+  const where: Prisma.WatchWhereInput =
+    status && status !== "all" ? { ...searchWhere, status } : searchWhere;
+
+  // `view=card` returns only what a collection card shows — the full rows carry
+  // long AI research text and made the phone download the whole collection's
+  // spec sheets just to draw thumbnails — plus per-status counts for the
+  // filter chips (within the current search).
+  if (searchParams.get("view") === "card") {
+    const [watches, groups] = await Promise.all([
+      prisma.watch.findMany({ where, orderBy: { createdAt: "desc" }, select: CARD_FIELDS }),
+      prisma.watch.groupBy({ by: ["status"], where: searchWhere, _count: { _all: true } }),
+    ]);
+    const counts: Record<string, number> = { all: 0 };
+    for (const group of groups) {
+      counts[group.status] = group._count._all;
+      counts.all += group._count._all;
+    }
+    return NextResponse.json({ watches, counts });
   }
 
-  const watches = await prisma.watch.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-  });
+  const watches = await prisma.watch.findMany({ where, orderBy: { createdAt: "desc" } });
   return NextResponse.json({ watches });
 }
 

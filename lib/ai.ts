@@ -9,6 +9,7 @@ import { WatchSpec, WatchSpecSchema, VetResult, VetResultSchema } from "./types"
 import { getApiKey } from "./settings";
 import { recordUsage } from "./usage";
 import { extractWebSources } from "./aiSources";
+import { cleanIdentity } from "./aiFields";
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-5.6-luna";
 const SAFETY_IDENTIFIER = crypto
@@ -56,6 +57,13 @@ export async function aiEnabled(): Promise<boolean> {
 
 const webSearchTool = { type: "web_search" as const };
 
+// Ask OpenAI not to store responses. The Responses API defaults to
+// store: true, which keeps each response retrievable through the API. Every
+// Caliber request is single-turn (it never chains previous_response_id), so
+// nothing needs to be stored. The OpenAI account's own data controls still
+// apply on top of this.
+const DO_NOT_STORE = { store: false } as const;
+
 type ImageInput = { base64: string; mediaType: string };
 
 function imageBlock(image: ImageInput, detail: "high" | "original" = "high") {
@@ -93,6 +101,11 @@ Rules:
   secondary-market value. Never invent a reference number or caliber — if you cannot confirm
   it, set the field to null and lower your confidence.
 - confidence reflects how sure you are of the identification (brand + model + reference).
+- Keep identity fields clean. "brand" is only the manufacturer's name (e.g. "Kestrel"); if the
+  maker cannot be determined, use "Unknown" — never a sentence or a parenthetical.
+  "referenceNumber" is only the reference itself (e.g. "KS1001") with no notes, alternatives,
+  or parentheses. Put caveats (licensee unknown, base reference, regional equivalents) in the
+  summary instead.
 - estValueLow/estValueHigh are USD secondary-market estimates for the piece in good condition.
 - Research the model's HISTORY and background: when it launched, how it evolved across
   generations, its place in the brand's lineup, and why collectors care. Capture 3-6 specific
@@ -133,6 +146,7 @@ export async function identifyWatch(
       : "");
 
   const response = await client.responses.parse({
+    ...DO_NOT_STORE,
     model: MODEL,
     max_output_tokens: 3000,
     reasoning: { effort: "low" },
@@ -160,7 +174,8 @@ export async function identifyWatch(
 
   await recordUsage("identify", MODEL, response);
   return {
-    ...WatchSpecSchema.parse(parsed(response)),
+    // Safety net for the rule above: notes left in brand/reference move to the summary.
+    ...cleanIdentity(WatchSpecSchema.parse(parsed(response))),
     sources: extractWebSources(response),
   };
 }
@@ -210,6 +225,7 @@ export async function vetWatch(
   });
 
   const response = await client.responses.parse({
+    ...DO_NOT_STORE,
     model: MODEL,
     max_output_tokens: 3500,
     reasoning: { effort: "low" },
@@ -266,6 +282,7 @@ export async function chatAboutWatch(context: string, messages: ChatMessage[]): 
   // on the corresponding Responses client event. Keep the runtime cost cap and
   // narrow the compatibility cast to this request until the SDK type catches up.
   const chatRequest = {
+    ...DO_NOT_STORE,
     model: MODEL,
     max_output_tokens: 1400,
     reasoning: { effort: "low" },

@@ -4,7 +4,34 @@ export type BrandConflict = {
 };
 
 function normalizedBrand(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+  // "&" and "and" name the same company ("Harbor Clock & Watch Co." vs
+  // "HARBOR CLOCK AND WATCH CO.") — fold it before stripping punctuation.
+  return value.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
+}
+
+// Words that say nothing about WHICH maker it is. Sharing only these (or a
+// year) must not count as agreement; sharing a distinctive word must.
+const GENERIC_BRAND_WORDS = new Set([
+  "the", "and", "co", "company", "corp", "corporation", "inc", "ltd", "limited", "llc",
+  "gmbh", "sa", "ag", "group", "international", "intl", "usa", "swiss", "japan", "made",
+  "watch", "watches", "clock", "clocks", "time", "timepieces", "licensed", "license",
+  "official", "merchandise", "collectible", "collection", "edition", "press", "new",
+  "unknown", "brand", "maker", "manufacturer",
+]);
+
+function brandWords(value: string): string[] {
+  return value
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word.length >= 3 && !/^\d+$/.test(word) && !GENERIC_BRAND_WORDS.has(word));
+}
+
+// Same maker named differently: "©QRS/Lynx 1999" vs "Lynx Press / QRS licensed
+// comic merchandise" share the distinctive word "lynx".
+function shareDistinctiveWord(identified: string, observed: string): boolean {
+  const observedWords = new Set(brandWords(observed));
+  return brandWords(identified).some((word) => word.length >= 4 && observedWords.has(word));
 }
 
 // "The Bradford Exchange" and "Bradford Exchange" name the same maker.
@@ -29,6 +56,7 @@ const LICENSED_PROPERTY_MARKS = [
   "transformers", "jurassicpark", "ghostbusters", "looneytunes", "simpsons",
   "supermario", "nintendo", "sonicthehedgehog", "barbie", "hotwheels", "lego",
   "powerrangers", "teenagemutantninjaturtles", "gijoe", "hasbro",
+  "phantom", "fantomen", "kingfeatures",
 ];
 
 function isLicensedPropertyMark(normalizedObserved: string): boolean {
@@ -46,6 +74,23 @@ function hintCorroboratesBrand(normalizedIdentified: string, hint: string | null
     .some((candidate) => normalizedHint.includes(candidate));
 }
 
+// True when two brand strings name the same maker, however they are written:
+// case/punctuation, "&" vs "and", a leading "The", or a shared distinctive word.
+export function sameMaker(left: string, right: string): boolean {
+  const a = normalizedBrand(left);
+  const b = normalizedBrand(right);
+  if (!a || !b) return false;
+  if (a.includes(b) || b.includes(a)) return true;
+
+  // Same maker, different article ("The Bradford Exchange" vs "Bradford Exchange").
+  const bareA = withoutLeadingArticle(a);
+  const bareB = withoutLeadingArticle(b);
+  if (bareA.length >= 4 && bareB.length >= 4 && (bareA.includes(bareB) || bareB.includes(bareA))) {
+    return true;
+  }
+  return shareDistinctiveWord(left, right);
+}
+
 // Returns a conflict only when legible dial branding genuinely contradicts the
 // identified brand — the case this guard exists for (a hallucinated maker).
 // `hint` is whatever the collector typed into "Help Caliber identify it".
@@ -58,19 +103,7 @@ export function findBrandConflict(
   const identified = normalizedBrand(identifiedBrand);
   const observed = normalizedBrand(observedBrand);
   if (!identified || !observed) return null;
-  if (identified.includes(observed) || observed.includes(identified)) return null;
-
-  // Same maker, different article ("The Bradford Exchange" vs "Bradford Exchange").
-  const bareIdentified = withoutLeadingArticle(identified);
-  const bareObserved = withoutLeadingArticle(observed);
-  if (
-    bareIdentified.length >= 4 &&
-    bareObserved.length >= 4 &&
-    (bareIdentified.includes(bareObserved) || bareObserved.includes(bareIdentified))
-  ) {
-    return null;
-  }
-
+  if (sameMaker(identifiedBrand, observedBrand)) return null;
   if (isLicensedPropertyMark(observed)) return null;
   if (hintCorroboratesBrand(identified, hint)) return null;
 
